@@ -70,6 +70,7 @@ interface KPIGridProps {
         districtPanchayats: number;
         voters: number;
         pollingStations: number;
+        totalWards: number;
     };
     selectedKPI: string | null;
     onSelectKPI: (kpi: string | null) => void;
@@ -84,7 +85,7 @@ export const KPIGrid: React.FC<KPIGridProps> = ({ counts, selectedKPI, onSelectK
         { id: 'blockPanchayats', label: 'Block Panchayats', value: counts.blockPanchayats, icon: <Building2 size={20} />, color: 'bg-teal-500', hasList: true },
         { id: 'districtPanchayats', label: 'District Panchayats', value: counts.districtPanchayats, icon: <Building2 size={20} />, color: 'bg-orange-500', hasList: true },
         { id: 'voters', label: 'Total Voters', value: counts.voters, icon: <Users size={20} />, color: 'bg-rose-500', hasList: false },
-        { id: 'pollingStations', label: 'Polling Stations', value: counts.pollingStations, icon: <Vote size={20} />, color: 'bg-blue-500', hasList: false },
+        { id: 'totalWards', label: 'Total Wards', value: counts.totalWards, icon: <Building2 size={20} />, color: 'bg-blue-500', hasList: false },
     ];
 
     return (

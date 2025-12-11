@@ -29,6 +29,7 @@ export const DistrictTable: React.FC<DistrictTableProps> = ({
             case 'blockPanchayats': return 'Block Panchayats';
             case 'districtPanchayats': return 'District Panchayats';
             case 'voters': return 'Total Voters';
+            case 'totalWards': return 'Total Wards';
             case 'pollingStations': return 'Polling Stations';
             default: return 'Local Bodies';
         }
@@ -42,7 +43,7 @@ export const DistrictTable: React.FC<DistrictTableProps> = ({
             let filteredLBs = districtLBs;
             let kpiCount = 0;
 
-            if (selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI)) {
+            if (selectedKPI && !['voters', 'pollingStations', 'totalWards'].includes(selectedKPI)) {
                 let typeFilter = '';
                 switch (selectedKPI) {
                     case 'corporations': typeFilter = 'Municipal Corporation'; break;
@@ -53,6 +54,8 @@ export const DistrictTable: React.FC<DistrictTableProps> = ({
                 }
                 filteredLBs = districtLBs.filter(lb => lb.lb_type === typeFilter);
                 kpiCount = filteredLBs.length;
+            } else if (selectedKPI === 'totalWards') {
+                kpiCount = districtLBs.reduce((sum, lb) => sum + lb.total_wards, 0);
             } else {
                 kpiCount = districtLBs.length;
             }
@@ -61,7 +64,7 @@ export const DistrictTable: React.FC<DistrictTableProps> = ({
             let voters = 0;
             let stations = 0;
 
-            if (selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI)) {
+            if (selectedKPI && !['voters', 'pollingStations', 'totalWards'].includes(selectedKPI)) {
                 // Specific Local Body Type Selected
                 const targetLBCodes = new Set(filteredLBs.map(lb => lb.lb_code));
 
@@ -103,7 +106,7 @@ export const DistrictTable: React.FC<DistrictTableProps> = ({
                 voters,
                 stations
             };
-        }).filter(row => !selectedKPI || ['voters', 'pollingStations'].includes(selectedKPI) || row.kpiCount > 0);
+        }).filter(row => !selectedKPI || ['voters', 'pollingStations', 'totalWards'].includes(selectedKPI) || row.kpiCount > 0);
     }, [districts, localBodies, wards, pollingStations, selectedKPI]);
 
     return (
@@ -115,16 +118,16 @@ export const DistrictTable: React.FC<DistrictTableProps> = ({
                         <h3 className="font-bold text-slate-800 text-lg mb-3">{row.district}</h3>
                         <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
                             <div className="col-span-2 flex justify-between items-center py-2 border-b border-slate-50">
-                                <span className="text-slate-500">{selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI) ? kpiLabel : 'Local Bodies'}</span>
+                                <span className="text-slate-500">{selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI) ? kpiLabel : (selectedKPI === 'totalWards' ? 'Total Wards' : 'Local Bodies')}</span>
                                 <span
-                                    className={`font-semibold ${selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI) ? 'text-blue-600' : 'text-slate-700'}`}
+                                    className={`font-semibold ${selectedKPI && !['voters', 'pollingStations', 'totalWards'].includes(selectedKPI) ? 'text-blue-600' : 'text-slate-700'}`}
                                     onClick={() => {
-                                        if (selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI)) {
+                                        if (selectedKPI && !['voters', 'pollingStations', 'totalWards'].includes(selectedKPI)) {
                                             onDrillDown(row.district, kpiLabel);
                                         }
                                     }}
                                 >
-                                    {row.kpiCount.toLocaleString()} {selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI) && <span className="text-xs ml-1">→</span>}
+                                    {row.kpiCount.toLocaleString()} {selectedKPI && !['voters', 'pollingStations', 'totalWards'].includes(selectedKPI) && <span className="text-xs ml-1">→</span>}
                                 </span>
                             </div>
                             <div className="flex flex-col">
@@ -148,7 +151,7 @@ export const DistrictTable: React.FC<DistrictTableProps> = ({
                             <tr className="bg-slate-50 border-b border-slate-200">
                                 <th className="py-4 px-6 font-semibold text-slate-700 text-sm uppercase tracking-wider">District</th>
                                 <th className="py-4 px-6 font-semibold text-slate-700 text-sm uppercase tracking-wider text-right">
-                                    {selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI) ? kpiLabel : 'Local Bodies'}
+                                    {selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI) ? kpiLabel : (selectedKPI === 'totalWards' ? 'Total Wards' : 'Local Bodies')}
                                 </th>
                                 <th className="py-4 px-6 font-semibold text-slate-700 text-sm uppercase tracking-wider text-right">Total Voters</th>
                                 <th className="py-4 px-6 font-semibold text-slate-700 text-sm uppercase tracking-wider text-right">Polling Stations</th>
@@ -159,9 +162,9 @@ export const DistrictTable: React.FC<DistrictTableProps> = ({
                                 <tr key={row.district} className="hover:bg-slate-50 transition-colors">
                                     <td className="py-4 px-6 font-medium text-slate-900">{row.district}</td>
                                     <td
-                                        className={`py-4 px-6 text-right font-medium ${selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI) ? 'text-blue-600 cursor-pointer hover:underline' : 'text-slate-600'}`}
+                                        className={`py-4 px-6 text-right font-medium ${selectedKPI && !['voters', 'pollingStations', 'totalWards'].includes(selectedKPI) ? 'text-blue-600 cursor-pointer hover:underline' : 'text-slate-600'}`}
                                         onClick={() => {
-                                            if (selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI)) {
+                                            if (selectedKPI && !['voters', 'pollingStations', 'totalWards'].includes(selectedKPI)) {
                                                 onDrillDown(row.district, kpiLabel);
                                             }
                                         }}
