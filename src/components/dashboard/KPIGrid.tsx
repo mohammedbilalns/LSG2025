@@ -1,6 +1,6 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
-import { Building2, Users, Vote } from 'lucide-react';
+import { Building2, Users, Vote, List } from 'lucide-react';
 
 interface KPIProps {
     label: string;
@@ -8,10 +8,12 @@ interface KPIProps {
     icon: React.ReactNode;
     active?: boolean;
     onClick?: () => void;
+    onViewList?: (e: React.MouseEvent) => void;
     color?: string;
+    hasList?: boolean;
 }
 
-const KPICard: React.FC<KPIProps> = ({ label, value, icon, active, onClick, color = "bg-blue-500" }) => {
+const KPICard: React.FC<KPIProps> = ({ label, value, icon, active, onClick, onViewList, color = "bg-blue-500", hasList }) => {
     return (
         <div
             onClick={onClick}
@@ -32,9 +34,20 @@ const KPICard: React.FC<KPIProps> = ({ label, value, icon, active, onClick, colo
                     <div className={cn("p-2.5 rounded-xl text-white shadow-sm", color)}>
                         {icon}
                     </div>
-                    {active && (
-                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                    )}
+                    <div className="flex items-center gap-2">
+                        {hasList && (
+                            <button
+                                onClick={onViewList}
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                                title="View All List"
+                            >
+                                <List size={16} />
+                            </button>
+                        )}
+                        {active && (
+                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                        )}
+                    </div>
                 </div>
 
                 <div>
@@ -60,17 +73,18 @@ interface KPIGridProps {
     };
     selectedKPI: string | null;
     onSelectKPI: (kpi: string | null) => void;
+    onDrillDown: (kpiId: string) => void;
 }
 
-export const KPIGrid: React.FC<KPIGridProps> = ({ counts, selectedKPI, onSelectKPI }) => {
+export const KPIGrid: React.FC<KPIGridProps> = ({ counts, selectedKPI, onSelectKPI, onDrillDown }) => {
     const kpis = [
-        { id: 'corporations', label: 'Corporations', value: counts.corporations, icon: <Building2 size={20} />, color: 'bg-indigo-500' },
-        { id: 'municipalities', label: 'Municipalities', value: counts.municipalities, icon: <Building2 size={20} />, color: 'bg-purple-500' },
-        { id: 'gramaPanchayats', label: 'Grama Panchayats', value: counts.gramaPanchayats, icon: <Building2 size={20} />, color: 'bg-green-500' },
-        { id: 'blockPanchayats', label: 'Block Panchayats', value: counts.blockPanchayats, icon: <Building2 size={20} />, color: 'bg-teal-500' },
-        { id: 'districtPanchayats', label: 'District Panchayats', value: counts.districtPanchayats, icon: <Building2 size={20} />, color: 'bg-orange-500' },
-        { id: 'voters', label: 'Total Voters', value: counts.voters, icon: <Users size={20} />, color: 'bg-rose-500' },
-        { id: 'pollingStations', label: 'Polling Stations', value: counts.pollingStations, icon: <Vote size={20} />, color: 'bg-blue-500' },
+        { id: 'corporations', label: 'Corporations', value: counts.corporations, icon: <Building2 size={20} />, color: 'bg-indigo-500', hasList: true },
+        { id: 'municipalities', label: 'Municipalities', value: counts.municipalities, icon: <Building2 size={20} />, color: 'bg-purple-500', hasList: true },
+        { id: 'gramaPanchayats', label: 'Grama Panchayats', value: counts.gramaPanchayats, icon: <Building2 size={20} />, color: 'bg-green-500', hasList: true },
+        { id: 'blockPanchayats', label: 'Block Panchayats', value: counts.blockPanchayats, icon: <Building2 size={20} />, color: 'bg-teal-500', hasList: true },
+        { id: 'districtPanchayats', label: 'District Panchayats', value: counts.districtPanchayats, icon: <Building2 size={20} />, color: 'bg-orange-500', hasList: true },
+        { id: 'voters', label: 'Total Voters', value: counts.voters, icon: <Users size={20} />, color: 'bg-rose-500', hasList: false },
+        { id: 'pollingStations', label: 'Polling Stations', value: counts.pollingStations, icon: <Vote size={20} />, color: 'bg-blue-500', hasList: false },
     ];
 
     return (
@@ -83,7 +97,12 @@ export const KPIGrid: React.FC<KPIGridProps> = ({ counts, selectedKPI, onSelectK
                     icon={kpi.icon}
                     color={kpi.color}
                     active={selectedKPI === kpi.id}
+                    hasList={kpi.hasList}
                     onClick={() => onSelectKPI(selectedKPI === kpi.id ? null : kpi.id)}
+                    onViewList={(e) => {
+                        e.stopPropagation();
+                        if (onDrillDown) onDrillDown(kpi.id);
+                    }}
                 />
             ))}
         </div>

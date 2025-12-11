@@ -107,43 +107,78 @@ export const DistrictTable: React.FC<DistrictTableProps> = ({
     }, [districts, localBodies, wards, pollingStations, selectedKPI]);
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                    <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200">
-                            <th className="py-4 px-6 font-semibold text-slate-700 text-sm uppercase tracking-wider">District</th>
-                            <th className="py-4 px-6 font-semibold text-slate-700 text-sm uppercase tracking-wider text-right">
-                                {selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI) ? kpiLabel : 'Local Bodies'}
-                            </th>
-                            <th className="py-4 px-6 font-semibold text-slate-700 text-sm uppercase tracking-wider text-right">Total Voters</th>
-                            <th className="py-4 px-6 font-semibold text-slate-700 text-sm uppercase tracking-wider text-right">Polling Stations</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                        {tableData.map((row) => (
-                            <tr key={row.district} className="hover:bg-slate-50 transition-colors">
-                                <td className="py-4 px-6 font-medium text-slate-900">{row.district}</td>
-                                <td
-                                    className={`py-4 px-6 text-right font-medium ${selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI) ? 'text-blue-600 cursor-pointer hover:underline' : 'text-slate-600'}`}
+        <div className="space-y-4">
+            {/* Mobile View (Cards) */}
+            <div className="md:hidden grid grid-cols-1 gap-4">
+                {tableData.map((row) => (
+                    <div key={row.district} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                        <h3 className="font-bold text-slate-800 text-lg mb-3">{row.district}</h3>
+                        <div className="grid grid-cols-2 gap-y-3 gap-x-4 text-sm">
+                            <div className="col-span-2 flex justify-between items-center py-2 border-b border-slate-50">
+                                <span className="text-slate-500">{selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI) ? kpiLabel : 'Local Bodies'}</span>
+                                <span
+                                    className={`font-semibold ${selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI) ? 'text-blue-600' : 'text-slate-700'}`}
                                     onClick={() => {
                                         if (selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI)) {
                                             onDrillDown(row.district, kpiLabel);
                                         }
                                     }}
                                 >
-                                    {row.kpiCount.toLocaleString()}
-                                </td>
-                                <td className="py-4 px-6 text-slate-600 text-right">
-                                    {row.voters.toLocaleString()}
-                                </td>
-                                <td className="py-4 px-6 text-slate-600 text-right">
-                                    {row.stations.toLocaleString()}
-                                </td>
+                                    {row.kpiCount.toLocaleString()} {selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI) && <span className="text-xs ml-1">→</span>}
+                                </span>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-slate-500 text-xs">Total Voters</span>
+                                <span className="font-medium text-slate-700">{row.voters.toLocaleString()}</span>
+                            </div>
+                            <div className="flex flex-col text-right">
+                                <span className="text-slate-500 text-xs">Polling Stations</span>
+                                <span className="font-medium text-slate-700">{row.stations.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Desktop View (Table) */}
+            <div className="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200">
+                                <th className="py-4 px-6 font-semibold text-slate-700 text-sm uppercase tracking-wider">District</th>
+                                <th className="py-4 px-6 font-semibold text-slate-700 text-sm uppercase tracking-wider text-right">
+                                    {selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI) ? kpiLabel : 'Local Bodies'}
+                                </th>
+                                <th className="py-4 px-6 font-semibold text-slate-700 text-sm uppercase tracking-wider text-right">Total Voters</th>
+                                <th className="py-4 px-6 font-semibold text-slate-700 text-sm uppercase tracking-wider text-right">Polling Stations</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {tableData.map((row) => (
+                                <tr key={row.district} className="hover:bg-slate-50 transition-colors">
+                                    <td className="py-4 px-6 font-medium text-slate-900">{row.district}</td>
+                                    <td
+                                        className={`py-4 px-6 text-right font-medium ${selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI) ? 'text-blue-600 cursor-pointer hover:underline' : 'text-slate-600'}`}
+                                        onClick={() => {
+                                            if (selectedKPI && !['voters', 'pollingStations'].includes(selectedKPI)) {
+                                                onDrillDown(row.district, kpiLabel);
+                                            }
+                                        }}
+                                    >
+                                        {row.kpiCount.toLocaleString()}
+                                    </td>
+                                    <td className="py-4 px-6 text-slate-600 text-right">
+                                        {row.voters.toLocaleString()}
+                                    </td>
+                                    <td className="py-4 px-6 text-slate-600 text-right">
+                                        {row.stations.toLocaleString()}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

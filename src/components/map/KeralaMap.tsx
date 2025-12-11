@@ -68,13 +68,17 @@ export const KeralaMap: React.FC<KeralaMapProps> = ({ geoJsonData, onFeatureClic
         <MapContainer
             center={[10.8505, 76.2711]} // Center of Kerala
             zoom={7}
-            style={{ height: '100%', width: '100%', background: '#f0f0f0' }}
+            style={{ height: '100%', width: '100%', background: '#ffffff' }}
             className="z-0"
+            zoomControl={false}
+            dragging={false}
+            scrollWheelZoom={false}
+            doubleClickZoom={false}
+            touchZoom={false}
+            boxZoom={false}
+            keyboard={false}
+            attributionControl={false}
         >
-            <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
             {geoJsonData && (
                 <>
                     <GeoJSON

@@ -64,7 +64,7 @@ export const DistrictDrillDown: React.FC<DistrictDrillDownProps> = ({
                             </h3>
                             <div className="flex items-center justify-between mt-2">
                                 <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-md">
-                                    Code: {lb.lb_code}
+                                    {lb.district_name}
                                 </span>
                                 <span className="text-xs text-slate-400">
                                     {lb.total_wards} Wards

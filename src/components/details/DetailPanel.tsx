@@ -60,7 +60,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ localBody, onBack, war
                 <div className="p-6">
                     <div className="mb-8">
                         <span className="inline-flex items-center px-4 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-semibold border border-blue-100 shadow-sm">
-                            {localBody.lb_type}
+                            {localBody.lb_type} • {localBody.district_name}
                         </span>
                     </div>
 
