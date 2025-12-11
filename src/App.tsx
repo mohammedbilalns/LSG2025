@@ -20,6 +20,7 @@ function App() {
     districtPanchayats: number;
     voters: number;
     pollingStations: number;
+    totalWards: number;
   }>({
     corporations: 0,
     municipalities: 0,
@@ -28,6 +29,7 @@ function App() {
     districtPanchayats: 0,
     voters: 0,
     pollingStations: 0,
+    totalWards: 0,
   });
   const [selectedKPI, setSelectedKPI] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,6 +74,7 @@ function App() {
           districtPanchayats: lbs.filter(lb => lb.lb_type === 'District Panchayat').length,
           voters: validWards.reduce((acc, curr) => acc + curr.total_voters, 0),
           pollingStations: validStations.length,
+          totalWards: lbs.reduce((acc, curr) => acc + curr.total_wards, 0),
         };
         setCounts(newCounts);
 
