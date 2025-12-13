@@ -1,6 +1,5 @@
-import React from 'react';
-import type { LocalBody, Ward, PollingStation } from '../../services/dataService';
-import { ArrowLeft, MapPin, Vote, Users, Building2 } from 'lucide-react';
+import type { LocalBody, Ward, PollingStation, TrendResult } from '../../services/dataService';
+import { ArrowLeft, MapPin, Vote, Users, Building2, Trophy } from 'lucide-react';
 import { KeralaMap } from '../map/KeralaMap';
 
 interface DetailPanelProps {
@@ -10,9 +9,10 @@ interface DetailPanelProps {
     pollingStations: PollingStation[];
     geoJsonData: any | null;
     localBodies: LocalBody[];
+    trendData?: TrendResult;
 }
 
-export const DetailPanel: React.FC<DetailPanelProps> = ({ localBody, onBack, wards, pollingStations, geoJsonData, localBodies }) => {
+export const DetailPanel: React.FC<DetailPanelProps> = ({ localBody, onBack, wards, pollingStations, geoJsonData, localBodies, trendData }) => {
     const lbWards = wards.filter(w => w.lb_code === localBody.lb_code);
 
     let totalPollingStations = 0;
@@ -58,11 +58,61 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ localBody, onBack, war
                 </div>
 
                 <div className="p-6">
-                    <div className="mb-8">
+                    <div className="mb-8 flex flex-wrap gap-2 justify-between items-center">
                         <span className="inline-flex items-center px-4 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-semibold border border-blue-100 shadow-sm">
                             {localBody.lb_type} • {localBody.district_name}
                         </span>
                     </div>
+
+                    {/* Election Trends Section */}
+                    {trendData && (
+                        <div className="mb-8 bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                                <Trophy size={20} className="text-yellow-500" />
+                                Election Trends 2025
+                            </h3>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Leading Front Banner */}
+                                <div className="bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-xl p-4 flex flex-col justify-center items-center text-center">
+                                    <span className="text-xs uppercase font-bold text-slate-500 mb-1">Leading Front</span>
+                                    <div className={`text-4xl font-black ${trendData.Leading_Front === 'LDF' ? 'text-red-600' :
+                                        trendData.Leading_Front === 'UDF' ? 'text-green-600' :
+                                            trendData.Leading_Front === 'NDA' ? 'text-orange-600' : 'text-slate-700'
+                                        }`}>
+                                        {trendData.Leading_Front}
+                                    </div>
+                                    <span className="text-sm font-medium text-slate-500 mt-2">
+                                        {trendData.Wards_Declared} of {localBody.total_wards} Declared
+                                    </span>
+                                </div>
+
+                                {/* Seat Distribution */}
+                                <div className="space-y-3">
+                                    <div className="text-sm font-semibold text-slate-600 mb-2">Seat Distribution</div>
+                                    <div className="space-y-2">
+                                        {[
+                                            { label: 'LDF', value: trendData.LDF_Seats, color: 'bg-red-500', text: 'text-red-700' },
+                                            { label: 'UDF', value: trendData.UDF_Seats, color: 'bg-green-500', text: 'text-green-700' },
+                                            { label: 'NDA', value: trendData.NDA_Seats, color: 'bg-orange-500', text: 'text-orange-700' },
+                                            { label: 'Others', value: trendData.IND_Seats, color: 'bg-slate-400', text: 'text-slate-700' },
+                                        ].map(item => (
+                                            <div key={item.label} className="flex items-center gap-3">
+                                                <div className="w-12 text-xs font-bold text-slate-500">{item.label}</div>
+                                                <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full ${item.color}`}
+                                                        style={{ width: `${(item.value / localBody.total_wards) * 100}%` }}
+                                                    ></div>
+                                                </div>
+                                                <div className={`w-6 text-sm font-bold text-right ${item.text}`}>{item.value}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-2 md:gap-4">
                         {/* Voters Card - Spans 2 Rows */}
@@ -151,17 +201,55 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ localBody, onBack, war
                                         <tr>
                                             <th className="py-3 px-4 font-semibold text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">Ward No</th>
                                             <th className="py-3 px-4 font-semibold text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">Name</th>
+                                            {trendData && <th className="py-3 px-4 font-semibold text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">Winner</th>}
                                             <th className="py-3 px-4 font-semibold text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200 text-right">Voters</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
-                                        {lbWards.map((ward) => (
-                                            <tr key={ward.ward_code} className="hover:bg-slate-50 transition-colors">
-                                                <td className="py-3 px-4 text-slate-500 font-medium text-sm">{ward.ward_no}</td>
-                                                <td className="py-3 px-4 text-slate-900 font-medium text-sm">{ward.ward_name_english}</td>
-                                                <td className="py-3 px-4 text-slate-600 text-sm text-right font-mono">{ward.total_voters.toLocaleString()}</td>
-                                            </tr>
-                                        ))}
+                                        {lbWards.map((ward) => {
+                                            const trendWard = trendData?.wardInfo?.[String(ward.ward_no)];
+                                            const winner = trendWard?.winner;
+                                            const leader = trendWard?.leading;
+
+                                            // Fallback to top candidate if no official winner/leader but candidates exist
+                                            const topCandidate = trendWard?.candidates?.[0];
+                                            const displayResult = winner || leader || topCandidate;
+
+                                            // Determine if this is an implicit spread (just top candidate) or explicit
+                                            const isImplicitLead = !winner && !leader && topCandidate && topCandidate.votes > 0;
+
+                                            // Determine text color
+                                            const groupColor =
+                                                displayResult?.group === 'LDF' ? 'text-red-600' :
+                                                    displayResult?.group === 'UDF' ? 'text-green-600' :
+                                                        displayResult?.group === 'NDA' ? 'text-orange-600' : 'text-slate-600';
+
+                                            return (
+                                                <tr key={ward.ward_code} className="hover:bg-slate-50 transition-colors">
+                                                    <td className="py-3 px-4 text-slate-500 font-medium text-sm">{ward.ward_no}</td>
+                                                    <td className="py-3 px-4 text-slate-900 font-medium text-sm">{ward.ward_name_english}</td>
+                                                    {trendData && (
+                                                        <td className="py-3 px-4">
+                                                            {displayResult ? (
+                                                                <div className="flex flex-col">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className={`font-bold text-sm ${groupColor}`}>{displayResult.name}</span>
+                                                                        {winner && <span className="text-[10px] bg-yellow-100 text-yellow-700 px-1 rounded-sm font-bold">WON</span>}
+                                                                        {(leader || isImplicitLead) && <span className="text-[10px] bg-blue-50 text-blue-600 px-1 rounded-sm font-bold">LEAD</span>}
+                                                                    </div>
+                                                                    <span className="text-xs text-slate-500">
+                                                                        {displayResult.party} {displayResult.votes > 0 ? `(${displayResult.votes})` : ''}
+                                                                    </span>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-xs text-slate-400 italic">No result</span>
+                                                            )}
+                                                        </td>
+                                                    )}
+                                                    <td className="py-3 px-4 text-slate-600 text-sm text-right font-mono">{ward.total_voters.toLocaleString()}</td>
+                                                </tr>
+                                            );
+                                        })}
                                     </tbody>
                                 </table>
                             </div>

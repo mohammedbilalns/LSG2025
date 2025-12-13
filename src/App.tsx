@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { KPIGrid } from './components/dashboard/KPIGrid';
-import { DistrictTable } from './components/dashboard/DistrictTable';
+import { DataDashboard } from './components/dashboard/DataDashboard';
+import { MapDashboard } from './components/map/MapDashboard';
 import { DetailPanel } from './components/details/DetailPanel';
 import { DistrictDrillDown } from './components/dashboard/DistrictDrillDown';
-import { fetchLocalBodies, fetchWards, fetchPollingStations, fetchGeoJSON, type LocalBody, type Ward, type PollingStation } from './services/dataService';
-import { Search } from 'lucide-react';
+import { fetchLocalBodies, fetchWards, fetchPollingStations, fetchGeoJSON, fetchTrendResults, type LocalBody, type Ward, type PollingStation, type TrendResult } from './services/dataService';
+import { Search, LayoutGrid, Map as MapIcon } from 'lucide-react';
 
 import { DisclaimerModal } from './components/common/DisclaimerModal';
 
@@ -12,6 +12,7 @@ function App() {
   const [localBodies, setLocalBodies] = useState<LocalBody[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
   const [pollingStations, setPollingStations] = useState<PollingStation[]>([]);
+  const [trendResults, setTrendResults] = useState<TrendResult[]>([]);
   const [counts, setCounts] = useState<{
     corporations: number;
     municipalities: number;
@@ -38,19 +39,22 @@ function App() {
   const [mapData, setMapData] = useState<any | null>(null);
   const [drillDownData, setDrillDownData] = useState<{ district: string; type: string } | null>(null);
   const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'data' | 'map'>('data');
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [lbs, fetchedWards, stations] = await Promise.all([
+        const [lbs, fetchedWards, stations, trends] = await Promise.all([
           fetchLocalBodies(),
           fetchWards(),
           fetchPollingStations(),
+          fetchTrendResults()
         ]);
 
         setLocalBodies(lbs);
         setWards(fetchedWards);
         setPollingStations(stations);
+        setTrendResults(trends);
 
         const lbTypeMap = new Map(lbs.map(lb => [lb.lb_code, lb.lb_type]));
 
@@ -112,6 +116,7 @@ function App() {
   const handleClearSelection = async () => {
     // Determine if we should go back to a drill-down view instead of the home dashboard
     if (!drillDownData && selectedLocalBody) {
+      // If coming back from detail view, restore the drill-down context
       let type = '';
       switch (selectedLocalBody.lb_type) {
         case 'Municipal Corporation': type = 'Corporations'; break;
@@ -122,6 +127,11 @@ function App() {
         default: type = 'Local Bodies';
       }
       setDrillDownData({ district: selectedLocalBody.district_name, type });
+      // Also ensure we are on the data tab if we want to see the list?
+      // Or if the user was on Map tab, do they want to go back to Map?
+      // Let's stay on current tab, but if on Map, clear map selection?
+      // Currently MapDashboard state is internal to MapDashboard (activeSubTab).
+      // If we want detailed drill down on Map, we need to handle that.
     }
 
     setSelectedLocalBody(null);
@@ -142,6 +152,8 @@ function App() {
     setMapData(null);
     setSelectedKPI(null);
     setSearchTerm('');
+    // Optionally reset tab to data?
+    // setActiveTab('data'); 
   };
 
 
@@ -208,6 +220,31 @@ function App() {
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Main Tabs (Desktop) */}
+            <div className="hidden md:flex bg-slate-100 p-1 rounded-xl">
+              <button
+                onClick={() => setActiveTab('data')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'data'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+                  }`}
+              >
+                <LayoutGrid size={18} />
+                Data
+              </button>
+              <button
+                onClick={() => setActiveTab('map')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'map'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+                  }`}
+              >
+                <MapIcon size={18} />
+                Map
+              </button>
+            </div>
+
+
             <div className="relative w-full max-w-xs hidden md:block">
               <div className="relative group">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={18} />
@@ -256,43 +293,68 @@ function App() {
         </div>
       </header>
 
-      {/* Mobile Search */}
-      <div className="md:hidden p-4 bg-white border-b border-slate-200">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
-          <input
-            type="text"
-            placeholder="Search Local Bodies..."
-            className="w-full pl-10 pr-4 py-2.5 bg-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          {searchTerm && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-50">
-              {filteredSearchLocalBodies.map(lb => (
-                <div
-                  key={lb.lb_code}
-                  onClick={() => handleSelectLocalBody(lb)}
-                  className="px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-0"
-                >
-                  <p className="font-medium text-slate-800">{lb.lb_name_english}</p>
-                  <p className="text-xs text-slate-500">{lb.lb_type} • {lb.district_name}</p>
-                </div>
-              ))}
-            </div>
-          )}
+      {/* Mobile Search and Tabs */}
+      <div className="md:hidden bg-white border-b border-slate-200">
+        <div className="flex p-2 gap-2 border-b border-slate-100">
+          <button
+            onClick={() => setActiveTab('data')}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'data'
+              ? 'bg-blue-50 text-blue-600'
+              : 'text-slate-500'
+              }`}
+          >
+            <LayoutGrid size={16} />
+            Data
+          </button>
+          <button
+            onClick={() => setActiveTab('map')}
+            className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'map'
+              ? 'bg-blue-50 text-blue-600'
+              : 'text-slate-500'
+              }`}
+          >
+            <MapIcon size={16} />
+            Map
+          </button>
         </div>
 
-        <div className="flex items-center justify-between px-1 mt-3">
-          <p className="text-[10px] text-slate-400 font-medium">
-            Crafted with :) by <a href="https://gnoeee.github.io" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-blue-600 transition-colors">JinOy</a>
-          </p>
-          <button
-            onClick={() => setIsDisclaimerOpen(true)}
-            className="text-[10px] text-slate-400 hover:text-blue-600 font-medium transition-colors"
-          >
-            Disclaimer
-          </button>
+        <div className="p-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search Local Bodies..."
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-50">
+                {filteredSearchLocalBodies.map(lb => (
+                  <div
+                    key={lb.lb_code}
+                    onClick={() => handleSelectLocalBody(lb)}
+                    className="px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-0"
+                  >
+                    <p className="font-medium text-slate-800">{lb.lb_name_english}</p>
+                    <p className="text-xs text-slate-500">{lb.lb_type} • {lb.district_name}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between px-1 mt-3">
+            <p className="text-[10px] text-slate-400 font-medium">
+              Crafted with :) by <a href="https://gnoeee.github.io" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-blue-600 transition-colors">JinOy</a>
+            </p>
+            <button
+              onClick={() => setIsDisclaimerOpen(true)}
+              className="text-[10px] text-slate-400 hover:text-blue-600 font-medium transition-colors"
+            >
+              Disclaimer
+            </button>
+          </div>
         </div>
       </div>
 
@@ -310,46 +372,38 @@ function App() {
               pollingStations={pollingStations}
               geoJsonData={mapData}
               localBodies={localBodies}
+              trendData={trendResults.find(t => t.LB_Code === selectedLocalBody.lb_code)}
             />
           </div>
-        ) : drillDownData ? (
-          <DistrictDrillDown
-            district={drillDownData.district}
-            type={drillDownData.type}
-            localBodies={drillDownLocalBodies}
-            onBack={handleBackFromDrillDown}
-            onSelectLocalBody={handleSelectLocalBody}
-          />
         ) : (
           <>
-            <KPIGrid
-              counts={counts}
-              selectedKPI={selectedKPI}
-              onSelectKPI={setSelectedKPI}
-              onDrillDown={handleStatewideDrillDown}
-            />
+            {/* Data Tab Content */}
+            <div className={activeTab === 'data' ? 'block' : 'hidden'}>
+              {drillDownData ? (
+                <DistrictDrillDown
+                  district={drillDownData.district}
+                  type={drillDownData.type}
+                  localBodies={drillDownLocalBodies}
+                  onBack={handleBackFromDrillDown}
+                  onSelectLocalBody={handleSelectLocalBody}
+                />
+              ) : (
+                <DataDashboard
+                  counts={counts}
+                  selectedKPI={selectedKPI}
+                  onSelectKPI={setSelectedKPI}
+                  onStatewideDrillDown={handleStatewideDrillDown}
+                  localBodies={localBodies}
+                  wards={wards}
+                  pollingStations={pollingStations}
+                  onDistrictDrillDown={handleDrillDown}
+                />
+              )}
+            </div>
 
-            <div className="mt-4 flex-1 flex flex-col">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-slate-900">
-                  {selectedKPI ? 'District Breakdown' : 'Overview by District'}
-                </h2>
-                {selectedKPI && (
-                  <button
-                    onClick={() => setSelectedKPI(null)}
-                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    Clear Filter
-                  </button>
-                )}
-              </div>
-              <DistrictTable
-                localBodies={localBodies}
-                wards={wards}
-                pollingStations={pollingStations}
-                selectedKPI={selectedKPI}
-                onDrillDown={handleDrillDown}
-              />
+            {/* Map Tab Content */}
+            <div className={activeTab === 'map' ? 'block h-full' : 'hidden'}>
+              <MapDashboard />
             </div>
           </>
         )}

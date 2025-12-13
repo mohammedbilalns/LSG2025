@@ -1,5 +1,42 @@
 import Papa from 'papaparse';
 
+export interface TrendResult {
+    District: string;
+    LB_Code: string;
+    LB_Name: string;
+    Block_Name: string;
+    Wards_Declared: number;
+    LDF_Seats: number;
+    UDF_Seats: number;
+    NDA_Seats: number;
+    IND_Seats: number;
+    Leading_Front: string;
+    LDF_Vote_Share: string;
+    UDF_Vote_Share: string;
+    NDA_Vote_Share: string;
+    Total_Voters: number;
+    Polled_Voters: number;
+    Polling_Percentage: string;
+    Candidate_Count: number;
+    wardInfo: Record<string, WardInfo>;
+}
+
+export interface WardInfo {
+    wardNo: string;
+    wardName: string;
+    winner?: WardCandidate; // If declared
+    leading?: WardCandidate; // If leading
+    candidates: WardCandidate[];
+}
+
+export interface WardCandidate {
+    name: string;
+    party: string;
+    group: string;
+    votes: number;
+    status: string;
+}
+
 export interface LocalBody {
     lb_code: string;
     lb_name_english: string;
@@ -44,7 +81,13 @@ export const fetchLocalBodies = async (): Promise<LocalBody[]> => {
                         lb_code: row['Local Body Code'],
                         lb_name_english: row['Local Body Name'],
                         lb_type: row['Local Body Type'],
-                        district_name: row['District'],
+                        district_name: (() => {
+                            const d = row['District'] ? row['District'].trim() : '';
+                            let normalized = d.toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase());
+                            if (normalized === 'Kasargod') return 'Kasaragod';
+                            if (normalized === 'Thiruvanathapuram') return 'Thiruvananthapuram';
+                            return normalized;
+                        })(),
                         total_wards: parseInt(row['Ward Count'] || '0', 10),
                     }));
                 resolve(localBodies);
@@ -105,6 +148,171 @@ export const fetchPollingStations = async (): Promise<PollingStation[]> => {
             error: (error: any) => reject(error),
         });
     });
+};
+
+
+import { fetchPartyGroups } from './partyService';
+
+export const fetchTrendResults = async (): Promise<TrendResult[]> => {
+
+    // Fetch party groups first - if this fails, we can fallback to default
+    let partyGroups = new Map();
+    try {
+        partyGroups = await fetchPartyGroups();
+    } catch (e) {
+        console.warn("Failed to load party groups, defaulting to empty map", e);
+    }
+
+    const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+    const url = `${baseUrl}data/csv/trend_detailed_results_2025.csv`;
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.warn(`Failed to fetch trend results: ${response.status} ${response.statusText}`);
+            return [];
+        }
+        const csvText = await response.text();
+
+        return new Promise((resolve) => {
+            Papa.parse(csvText, {
+                header: true,
+                dynamicTyping: true,
+                skipEmptyLines: true,
+                complete: (results) => {
+                    if (results.errors.length > 0) {
+                        console.warn("Errors parsing trend results CSV:", results.errors);
+                    }
+                    const rawData = results.data as any[];
+                    if (!rawData) {
+                        resolve([]);
+                        return;
+                    }
+
+                    // Aggregate data by LB_Code
+                    const lbMap = new Map<string, TrendResult>();
+                    const declaredWardsMap = new Map<string, Set<string>>();
+
+                    rawData.forEach(row => {
+                        const lbCode = row['LB_Code'];
+                        if (!lbCode) return;
+
+                        if (!lbMap.has(lbCode)) {
+                            lbMap.set(lbCode, {
+                                District: row['District'],
+                                LB_Code: lbCode,
+                                LB_Name: row['LB_Name'],
+                                Block_Name: '',
+                                Wards_Declared: 0,
+                                LDF_Seats: 0,
+                                UDF_Seats: 0,
+                                NDA_Seats: 0,
+                                IND_Seats: 0,
+                                Leading_Front: 'N/A',
+                                LDF_Vote_Share: '0%',
+                                UDF_Vote_Share: '0%',
+                                NDA_Vote_Share: '0%',
+                                Total_Voters: 0,
+                                Polled_Voters: 0,
+                                Polling_Percentage: '0',
+                                Candidate_Count: 0,
+                                wardInfo: {}
+                            });
+                            declaredWardsMap.set(lbCode, new Set());
+                        }
+
+                        const trend = lbMap.get(lbCode)!;
+                        const status = row['Status']?.trim().toLowerCase();
+                        const wardNo = String(row['Ward_No']);
+
+                        if (!wardNo) return;
+
+                        if (!trend.wardInfo[wardNo]) {
+                            trend.wardInfo[wardNo] = {
+                                wardNo: wardNo,
+                                wardName: row['Ward_Name'],
+                                candidates: []
+                            };
+                        }
+
+                        const party = row['Party']?.toUpperCase()?.trim() || '';
+                        const group = partyGroups.get(party) || 'IND';
+
+                        const candidate: WardCandidate = {
+                            name: row['Candidate_Name'],
+                            party: party,
+                            group: group,
+                            votes: row['Votes'],
+                            status: row['Status']
+                        };
+
+                        trend.wardInfo[wardNo].candidates.push(candidate);
+
+                        // Winner and seats will be calculated after sorting
+                        if (status === 'leading') {
+                            trend.wardInfo[wardNo].leading = candidate;
+                        }
+                    });
+
+                    // Finalize counts and determine winners based on VOTES
+                    lbMap.forEach((trend, _lbCode) => {
+                        let calculatedWardsDeclared = 0;
+
+                        Object.values(trend.wardInfo).forEach(ward => {
+                            // Sort candidates by votes (descending)
+                            ward.candidates.sort((a, b) => b.votes - a.votes);
+
+                            // Find the true winner: Highest voted candidate with status 'won'
+                            const trueWinner = ward.candidates.find(c => c.status && c.status.toLowerCase() === 'won');
+                            
+                            if (trueWinner) {
+                                ward.winner = trueWinner;
+                                calculatedWardsDeclared++;
+
+                                const group = trueWinner.group;
+                                if (group === 'LDF') trend.LDF_Seats++;
+                                else if (group === 'UDF') trend.UDF_Seats++;
+                                else if (group === 'NDA') trend.NDA_Seats++;
+                                else trend.IND_Seats++;
+                            }
+                            // Leading logic is implicit or handled by UI if no winner
+                        });
+
+                        trend.Wards_Declared = calculatedWardsDeclared;
+                    });
+
+                    const aggregatedTrends = Array.from(lbMap.values()).map(trend => {
+                        const { LDF_Seats, UDF_Seats, NDA_Seats, IND_Seats } = trend;
+                        const maxSeats = Math.max(LDF_Seats, UDF_Seats, NDA_Seats, IND_Seats);
+
+                        let leaders = [];
+                        if (maxSeats > 0) {
+                            if (LDF_Seats === maxSeats) leaders.push('LDF');
+                            if (UDF_Seats === maxSeats) leaders.push('UDF');
+                            if (NDA_Seats === maxSeats) leaders.push('NDA');
+                            if (IND_Seats === maxSeats) leaders.push('IND');
+                        }
+
+                        if (leaders.length === 1) trend.Leading_Front = leaders[0];
+                        else if (leaders.length > 1) trend.Leading_Front = 'Hung';
+                        else trend.Leading_Front = 'N/A';
+
+                        return trend;
+                    });
+
+                    resolve(aggregatedTrends);
+                },
+                error: (error: any) => {
+                    console.error("Error parsing trend results:", error);
+                    resolve([]);
+                }
+            });
+        });
+
+    } catch (fetchError) {
+        console.error("Unexpected error fetching trend results:", fetchError);
+        return [];
+    }
 };
 
 export const fetchGeoJSON = async (district: string, type: string, name: string) => {
