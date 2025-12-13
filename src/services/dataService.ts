@@ -154,26 +154,34 @@ export const fetchPollingStations = async (): Promise<PollingStation[]> => {
 import { fetchPartyGroups } from './partyService';
 
 export const fetchTrendResults = async (): Promise<TrendResult[]> => {
+
+    // Fetch party groups first - if this fails, we can fallback to default
+    let partyGroups = new Map();
     try {
-        // Fetch party groups first - if this fails, we can fallback to default
-        let partyGroups = new Map();
-        try {
-            partyGroups = await fetchPartyGroups();
-        } catch (e) {
-            console.warn("Failed to load party groups, defaulting to empty map", e);
+        partyGroups = await fetchPartyGroups();
+    } catch (e) {
+        console.warn("Failed to load party groups, defaulting to empty map", e);
+    }
+
+    const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+    const url = `${baseUrl}data/csv/trend_detailed_results_2025.csv`;
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            console.warn(`Failed to fetch trend results: ${response.status} ${response.statusText}`);
+            return [];
         }
+        const csvText = await response.text();
 
         return new Promise((resolve) => {
-            const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
-            Papa.parse(`${baseUrl}data/csv/trend_detailed_results_2025.csv`, {
-                download: true,
+            Papa.parse(csvText, {
                 header: true,
                 dynamicTyping: true,
                 skipEmptyLines: true,
                 complete: (results) => {
                     if (results.errors.length > 0) {
                         console.warn("Errors parsing trend results CSV:", results.errors);
-                        // We continue with whatever data we got
                     }
                     const rawData = results.data as any[];
                     if (!rawData) {
@@ -183,12 +191,10 @@ export const fetchTrendResults = async (): Promise<TrendResult[]> => {
 
                     // Aggregate data by LB_Code
                     const lbMap = new Map<string, TrendResult>();
-                    // Track unique wards declared per LB (Set of Ward_No)
                     const declaredWardsMap = new Map<string, Set<string>>();
 
                     rawData.forEach(row => {
                         const lbCode = row['LB_Code'];
-                        // Skip if no LB Code (e.g. malformed row)
                         if (!lbCode) return;
 
                         if (!lbMap.has(lbCode)) {
@@ -196,33 +202,31 @@ export const fetchTrendResults = async (): Promise<TrendResult[]> => {
                                 District: row['District'],
                                 LB_Code: lbCode,
                                 LB_Name: row['LB_Name'],
-                                Block_Name: '', // Not in detailed CSV
+                                Block_Name: '',
                                 Wards_Declared: 0,
                                 LDF_Seats: 0,
                                 UDF_Seats: 0,
                                 NDA_Seats: 0,
                                 IND_Seats: 0,
                                 Leading_Front: 'N/A',
-                                LDF_Vote_Share: '0%', // Placeholder
+                                LDF_Vote_Share: '0%',
                                 UDF_Vote_Share: '0%',
                                 NDA_Vote_Share: '0%',
-                                Total_Voters: 0, // Not available
-                                Polled_Voters: 0, // Not available
-                                Polling_Percentage: '0', // Not available
+                                Total_Voters: 0,
+                                Polled_Voters: 0,
+                                Polling_Percentage: '0',
                                 Candidate_Count: 0,
-                                wardInfo: {} // New field for detailed breakdown
+                                wardInfo: {}
                             });
                             declaredWardsMap.set(lbCode, new Set());
                         }
 
                         const trend = lbMap.get(lbCode)!;
-
                         const status = row['Status']?.trim().toLowerCase();
                         const wardNo = String(row['Ward_No']);
 
                         if (!wardNo) return;
 
-                        // Initialize Ward Info if missing
                         if (!trend.wardInfo[wardNo]) {
                             trend.wardInfo[wardNo] = {
                                 wardNo: wardNo,
@@ -245,44 +249,32 @@ export const fetchTrendResults = async (): Promise<TrendResult[]> => {
                         trend.wardInfo[wardNo].candidates.push(candidate);
 
                         if (status === 'won') {
-                            // Track detailed ward declared
                             declaredWardsMap.get(lbCode)!.add(wardNo);
                             trend.wardInfo[wardNo].winner = candidate;
 
-                            // Count seat strictly for Winner
-                            if (group === 'LDF') {
-                                trend.LDF_Seats++;
-                            } else if (group === 'UDF') {
-                                trend.UDF_Seats++;
-                            } else if (group === 'NDA') {
-                                trend.NDA_Seats++;
-                            } else {
-                                trend.IND_Seats++;
-                            }
+                            if (group === 'LDF') trend.LDF_Seats++;
+                            else if (group === 'UDF') trend.UDF_Seats++;
+                            else if (group === 'NDA') trend.NDA_Seats++;
+                            else trend.IND_Seats++;
                         } else if (status === 'leading') {
                             trend.wardInfo[wardNo].leading = candidate;
                         }
-
                     });
 
-                    // Finalize counts
                     lbMap.forEach((trend, lbCode) => {
                         if (declaredWardsMap.has(lbCode)) {
                             trend.Wards_Declared = declaredWardsMap.get(lbCode)!.size;
                         }
-                        // Sort candidates by votes in each ward
                         Object.values(trend.wardInfo).forEach(ward => {
                             ward.candidates.sort((a, b) => b.votes - a.votes);
                         });
                     });
 
-                    // Calculate Leading Front for each LB
                     const aggregatedTrends = Array.from(lbMap.values()).map(trend => {
                         const { LDF_Seats, UDF_Seats, NDA_Seats, IND_Seats } = trend;
                         const maxSeats = Math.max(LDF_Seats, UDF_Seats, NDA_Seats, IND_Seats);
 
                         let leaders = [];
-                        // Only count leader if > 0
                         if (maxSeats > 0) {
                             if (LDF_Seats === maxSeats) leaders.push('LDF');
                             if (UDF_Seats === maxSeats) leaders.push('UDF');
@@ -290,26 +282,24 @@ export const fetchTrendResults = async (): Promise<TrendResult[]> => {
                             if (IND_Seats === maxSeats) leaders.push('IND');
                         }
 
-                        if (leaders.length === 1) {
-                            trend.Leading_Front = leaders[0];
-                        } else if (leaders.length > 1) {
-                            trend.Leading_Front = 'Hung';
-                        } else {
-                            trend.Leading_Front = 'N/A';
-                        }
+                        if (leaders.length === 1) trend.Leading_Front = leaders[0];
+                        else if (leaders.length > 1) trend.Leading_Front = 'Hung';
+                        else trend.Leading_Front = 'N/A';
+
                         return trend;
                     });
+
                     resolve(aggregatedTrends);
                 },
-                error: (error) => {
-                    console.error("Error loading trend results CSV:", error);
-                    // Resolve with empty array instead of rejecting specifically to allow Promise.all to succeed for other requests
+                error: (error: any) => {
+                    console.error("Error parsing trend results:", error);
                     resolve([]);
                 }
             });
         });
-    } catch (err) {
-        console.error("Unexpected error in fetchTrendResults", err);
+
+    } catch (fetchError) {
+        console.error("Unexpected error fetching trend results:", fetchError);
         return [];
     }
 };
