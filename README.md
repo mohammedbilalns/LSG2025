@@ -1,5 +1,7 @@
 # Kerala LSG Election Portal
 
+**Experimental**
+
 A web portal to visualize Kerala LSG election data, including an interactive map, KPIs, and detailed information for local bodies.
 
 ## Features
