@@ -5,7 +5,7 @@ import { DetailPanel } from './components/details/DetailPanel';
 import { DistrictDrillDown } from './components/dashboard/DistrictDrillDown';
 import { fetchLocalBodies, fetchWards, fetchPollingStations, fetchTrendResults, type LocalBody, type Ward, type PollingStation, type TrendResult } from './services/dataService';
 import { Search, LayoutGrid, Map as MapIcon } from 'lucide-react';
-
+import Logo from "./assets/logo.png";
 import { DisclaimerModal } from './components/common/DisclaimerModal';
 import { useGeoJSONMap } from './services/map';
 
@@ -213,12 +213,12 @@ function App() {
             className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
             onClick={handleGoHome}
           >
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-600/20">
-              KL
-            </div>
+            <div className="w-15 h-15 bg-white-300 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-600/20">
+            <img src={Logo} alt="Logo" className="w-15 h-15" />
+          </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight leading-none">Kerala LSG Election Portal</h1>
-              <p className="text-xs text-slate-500 font-medium mt-1">Election Data Dashboard 2025</p>
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight leading-none">2025 Kerala LSG Election Portal</h1>
+              <p className="text-s text-slate-500 font-medium mt-1">An Opendata Kerala Initiative</p>
             </div>
           </div>
 
@@ -262,7 +262,7 @@ function App() {
 
               <div className="flex items-center justify-end gap-3 mt-1.5 px-1">
                 <p className="text-[10px] text-slate-400 font-medium">
-                  Crafted with :) by <a href="https://gnoeee.github.io/" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-blue-600 transition-colors">JinOy</a>
+                  Crafted with :) by <a href="https://opendatakerala.org" target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-blue-600 transition-colors">ODK Community</a>
                 </p>
                 <span className="text-[10px] text-slate-300">•</span>
                 <button
