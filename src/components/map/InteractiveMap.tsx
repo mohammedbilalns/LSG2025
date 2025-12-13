@@ -79,89 +79,86 @@ const process = (geoJsonData: TopoJSON): GeoJSON.GeoJsonObject | null => {
 }
 
 export const InteractiveMap: React.FC<InteractiveMapProps> = ({
-    geoJsonData,
-    onFeatureClick,
-    onFeatureHover,
-    onFeatureOut,
-    interactive = false,
-    zoomControl,
-    dragging,
-    scrollWheelZoom,
-    touchZoom,
-    doubleClickZoom,
-    padding = [20, 20]
+  geoJsonData,
+  onFeatureClick,
+  onFeatureHover,
+  onFeatureOut,
+  interactive = false,
+  zoomControl,
+  dragging,
+  scrollWheelZoom,
+  touchZoom,
+  doubleClickZoom,
+  padding = [20, 20]
 }) => {
-  const processedData = process(geoJsonData)
+  const processedData = process(geoJsonData);
 
-    // Style for the features
-    // ... (rest of the file logic reused) ...
+  // Style for the features
+  // ... (rest of the file logic reused) ...
 
-    // We need to re-implement style/event handlers to close the component from the replacement
-    const style = (feature: any) => ({
-        fillColor: feature?.properties?._fillColor || '#3b82f6',
-        weight: 1,
-        opacity: 1,
-        color: 'white',
-        dashArray: '3',
-        fillOpacity: feature?.properties?._fillColor ? 0.9 : 0.5
+  // We need to re-implement style/event handlers to close the component from the replacement
+  const style = (feature: any) => ({
+    fillColor: feature?.properties?._fillColor || '#3b82f6',
+    weight: 1,
+    opacity: 1,
+    color: 'white',
+    dashArray: '3',
+    fillOpacity: feature?.properties?._fillColor ? 0.9 : 0.5
+  });
+
+  const highlightStyle = {
+    weight: 2,
+    color: '#1d4ed8',
+    dashArray: '',
+    fillOpacity: 0.7
+  };
+
+  const onEachFeature = (feature: any, layer: L.Layer) => {
+    const l = layer as L.Path;
+
+    l.on({
+      mouseover: (e) => {
+        const target = e.target;
+        target.setStyle(highlightStyle);
+        target.bringToFront();
+        if (onFeatureHover) onFeatureHover(feature, e);
+      },
+      mouseout: (e) => {
+        const target = e.target;
+        target.setStyle(style);
+        if (onFeatureOut) onFeatureOut();
+      },
+      click: () => {
+        if (onFeatureClick) onFeatureClick(feature);
+      },
+      mousemove: (e) => {
+        if (onFeatureHover) onFeatureHover(feature, e);
+      }
     });
-
-    const highlightStyle = {
-        weight: 2,
-        color: '#1d4ed8',
-        dashArray: '',
-        fillOpacity: 0.7
-    };
-
-    const onEachFeature = (feature: any, layer: L.Layer) => {
-        const l = layer as L.Path;
-
-        l.on({
-            mouseover: (e) => {
-                const target = e.target;
-                target.setStyle(highlightStyle);
-                target.bringToFront();
-                if (onFeatureHover) onFeatureHover(feature, e);
-            },
-            mouseout: (e) => {
-                const target = e.target;
-                target.setStyle(style);
-                if (onFeatureOut) onFeatureOut();
-            },
-            click: () => {
-                if (onFeatureClick) onFeatureClick(feature);
-            },
-            mousemove: (e) => {
-                if (onFeatureHover) onFeatureHover(feature, e);
-            }
-        });
-    };
-
+  };
+  if (processedData) {
     return (
-        <MapContainer
-            center={[10.8505, 76.2711]}
-            zoom={7}
-            style={{ height: '100%', width: '100%', background: 'white' }}
-            dragging={dragging ?? interactive}
-            zoomControl={zoomControl ?? interactive}
-            scrollWheelZoom={scrollWheelZoom ?? interactive}
-            doubleClickZoom={doubleClickZoom ?? interactive}
-            touchZoom={touchZoom ?? interactive}
-            boxZoom={interactive}
-            keyboard={interactive}
-            attributionControl={false}
-        >
-            {processedData && (
-                <>
-                    <GeoJSON
-                        key={JSON.stringify(geoJsonData).length}
-                        data={processedData}
-                        style={style}
-                        onEachFeature={onEachFeature}
-                    />
-                    <MapController data={processedData} padding={padding} />
-                </>
-            )}
-        </MapContainer>
+      <MapContainer
+        center={[10.8505, 76.2711]}
+        zoom={7}
+        style={{ height: '100%', width: '100%', background: 'white' }}
+        dragging={dragging ?? interactive}
+        zoomControl={zoomControl ?? interactive}
+        scrollWheelZoom={scrollWheelZoom ?? interactive}
+        doubleClickZoom={doubleClickZoom ?? interactive}
+        touchZoom={touchZoom ?? interactive}
+        boxZoom={interactive}
+        keyboard={interactive}
+        attributionControl={false}
+      >
+        <GeoJSON
+          key={JSON.stringify(geoJsonData).length}
+          data={processedData}
+          style={style}
+          onEachFeature={onEachFeature}
+        />
+        <MapController data={processedData} padding={padding} />
+      </MapContainer>
     );
+  }
 };
