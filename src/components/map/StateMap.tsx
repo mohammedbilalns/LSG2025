@@ -19,7 +19,7 @@ export const StateMap: React.FC<StateMapProps> = ({
     trends,
     onSelectLB
 }) => {
-    const [activeTab, setActiveTab] = useState<'district' | 'block' | 'grama'>('district');
+    const [activeTab, setActiveTab] = useState<'district' | 'block' | 'grama'>('grama');
     const [hoveredInfo, setHoveredInfo] = useState<{ name: string, district: string, trend?: TrendResult } | null>(null);
 
     const fileName = tabToFile[activeTab];

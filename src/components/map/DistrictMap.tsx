@@ -128,7 +128,7 @@ export const DistrictMap: React.FC<DistrictMapProps> = ({
 
                 {/* Tabs */}
                 <div className="flex bg-slate-100 p-1 rounded-lg">
-                    {(['district', 'block', 'grama'] as const).map((tab) => (
+                    {(['grama','district', 'block'] as const).map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
