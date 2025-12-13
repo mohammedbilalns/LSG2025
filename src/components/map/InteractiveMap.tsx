@@ -99,7 +99,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   // We need to re-implement style/event handlers to close the component from the replacement
   const style = (feature: any) => ({
     fillColor: feature?.properties?._fillColor || '#3b82f6',
-    weight: 1,
+    weight: 0.3,
     opacity: 1,
     color: 'white',
     dashArray: '3',
