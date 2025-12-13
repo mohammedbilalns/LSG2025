@@ -114,9 +114,9 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ localBody, onBack, war
                         </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-2 md:gap-4">
-                        {/* Voters Card - Spans 2 Rows */}
-                        <div className="row-span-2 p-3 md:p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-4">
+                        {/* Voters Card - Full width on mobile, spans 2 rows on larger screens */}
+                        <div className="sm:row-span-2 p-3 md:p-5 bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col">
                             <div className="flex items-start gap-3 md:gap-4 mb-4">
                                 <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl shrink-0">
                                     <Vote size={24} />
