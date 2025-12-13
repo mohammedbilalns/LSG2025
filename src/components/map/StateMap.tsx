@@ -17,6 +17,7 @@ export const StateMap: React.FC<StateMapProps> = ({
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [hoveredInfo, setHoveredInfo] = useState<{ name: string, district: string, trend?: TrendResult } | null>(null);
+    const [mapKey, setMapKey] = useState(0);
 
     useEffect(() => {
         const loadMap = async () => {
@@ -79,6 +80,7 @@ export const StateMap: React.FC<StateMapProps> = ({
                 });
 
                 setGeoJsonData({ ...data, features: processedFeatures });
+                setMapKey(prev => prev + 1);
 
             } catch (err) {
                 console.error(err);
@@ -151,6 +153,7 @@ export const StateMap: React.FC<StateMapProps> = ({
                     <div className="h-full w-full">
                         {/* We need InteractiveMap to respect feature colors. I'll need to modify InteractiveMapProps to allow style callback or property */}
                         <InteractiveMap
+                            key={mapKey}
                             geoJsonData={geoJsonData}
                             onFeatureClick={handleFeatureClick}
                             onFeatureHover={handleFeatureHover}
