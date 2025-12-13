@@ -39,7 +39,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [drillDownData, setDrillDownData] = useState<{ district: string; type: string } | null>(null);
   const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'data' | 'map'>('data');
+  const [activeTab, setActiveTab] = useState<'data' | 'map'>('map');
 
   const [district, setDistrict] = useState<string>();
   const [type, setType] = useState<string>();

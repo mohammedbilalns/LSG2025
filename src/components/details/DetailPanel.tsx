@@ -223,7 +223,8 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ localBody, onBack, war
                                                 displayResult?.group === 'LDF' ? 'text-red-600' :
                                                     displayResult?.group === 'UDF' ? 'text-indigo-600' :
                                                         displayResult?.group === 'NDA' ? 'text-orange-600' : 
-                                                        displayResult?.group ==='Others' ? 'text-slate-600';
+                                                        displayResult?.group ==='Others' ? 'text-slate-600':
+                                                        'text-slate-500';
 
                                             return (
                                                 <tr key={ward.ward_code} className="hover:bg-slate-50 transition-colors">
