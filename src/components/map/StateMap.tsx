@@ -94,7 +94,7 @@ export const StateMap: React.FC<StateMapProps> = ({
                             onFeatureOut={() => setHoveredInfo(null)}
                             interactive={true}
                             dragging={false}
-                            zoomControl={false}
+                            zoomControl={true}
                             scrollWheelZoom={false}
                             doubleClickZoom={false}
                             touchZoom={false}
