@@ -62,7 +62,7 @@ export const MapDashboard: React.FC<MapDashboardProps> = () => {
         }
     };
 
-    const handleStateMapSelection = (lbCode: string, districtName: string, type: string) => {
+    const handleStateMapSelection = (_lbCode: string, districtName: string, _type: string) => {
         setSelectedDistrict(districtName);
         setView('lbs');
         // Future enhancement: Deep link to specific LB via lbCode

@@ -1,5 +1,5 @@
 import type { LocalBody, Ward, PollingStation, TrendResult } from '../../services/dataService';
-import { ArrowLeft, MapPin, Vote, Users, Building2, Trophy, BarChart3 } from 'lucide-react';
+import { ArrowLeft, MapPin, Vote, Users, Building2, Trophy } from 'lucide-react';
 import { KeralaMap } from '../map/KeralaMap';
 
 interface DetailPanelProps {
