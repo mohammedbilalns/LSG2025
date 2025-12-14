@@ -24,10 +24,36 @@ export const StateMap: React.FC<StateMapProps> = ({
 }) => {
     const [activeTab, setActiveTab] = useState<'district' | 'block' | 'grama'>('grama');
     const [hoveredInfo, setHoveredInfo] = useState<{ name: string, district: string, trend?: TrendResult } | null>(null);
+    const [showMuni, setShowMuni] = useState(true);
+    const [showCorp, setShowCorp] = useState(true);
 
     const fileName = tabToFile[activeTab];
 
     const map = useMap(fileName, trends);
+
+    const filteredData = React.useMemo(() => {
+        if (!map.data) return null;
+
+        // If filters are all on, return original
+        if (showMuni && showCorp) return map.data;
+
+        // Clone to avoid mutating original source if re-used
+        const features = (map.data.features || []).filter((f: any) => {
+            const type = f.properties.Lsgd_Type || f.properties.lsgd_type || f.properties.LB_Type; // Handle potential varied property names
+
+            // If type is missing, we might default to showing it or rely on other logic.
+            // Assuming strict filtering if property exists.
+            if (!type) return true; // Keep if unknown
+
+            const normalizedType = type.toLowerCase().trim();
+            if (normalizedType.includes('municipality') && !showMuni) return false;
+            if (normalizedType.includes('corporation') && !showCorp) return false;
+
+            return true;
+        });
+
+        return { ...map.data, features };
+    }, [map.data, showMuni, showCorp]);
 
     const handleFeatureClick = (feature: any) => {
         const props = feature.properties;
@@ -54,11 +80,34 @@ export const StateMap: React.FC<StateMapProps> = ({
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[calc(100dvh-150px)]">
-            <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-white z-10">
-                <h2 className="text-l font-bold text-slate-800">Kerala Election Trends</h2>
+            <div className="p-4 border-b border-slate-200 flex flex-col gap-3 md:flex-row md:items-center md:justify-between bg-white z-10">
+                <div className="flex flex-col gap-1">
+                    <h2 className="text-l font-bold text-slate-800">Kerala Election Trends</h2>
+                    {/* Filters */}
+                    <div className="flex gap-3 text-xs">
+                        <label className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-2 py-1 rounded select-none border border-transparent hover:border-slate-200 transition-colors">
+                            <input
+                                type="checkbox"
+                                checked={showMuni}
+                                onChange={e => setShowMuni(e.target.checked)}
+                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
+                            />
+                            <span className="text-slate-700 font-medium">Municipalities</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-2 py-1 rounded select-none border border-transparent hover:border-slate-200 transition-colors">
+                            <input
+                                type="checkbox"
+                                checked={showCorp}
+                                onChange={e => setShowCorp(e.target.checked)}
+                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
+                            />
+                            <span className="text-slate-700 font-medium">Corporations</span>
+                        </label>
+                    </div>
+                </div>
 
                 {/* Tabs */}
-                <div className="flex bg-slate-100 p-1 rounded-lg">
+                <div className="flex bg-slate-100 p-1 rounded-lg self-start md:self-auto">
                     {(['district', 'block', 'grama'] as const).map((tab) => (
                         <button
                             key={tab}
@@ -92,7 +141,7 @@ export const StateMap: React.FC<StateMapProps> = ({
                         {/* We need InteractiveMap to respect feature colors. I'll need to modify InteractiveMapProps to allow style callback or property */}
                         <InteractiveMap
                             key={activeTab}
-                            geoJsonData={map.data}
+                            geoJsonData={filteredData}
                             onFeatureClick={handleFeatureClick}
                             onFeatureHover={handleFeatureHover}
                             onFeatureOut={() => setHoveredInfo(null)}

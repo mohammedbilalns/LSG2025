@@ -26,6 +26,33 @@ export const DistrictMap: React.FC<DistrictMapProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [hoveredLB, setHoveredLB] = useState<string | null>(null);
 
+    // Filters
+    const [showMuni, setShowMuni] = useState(true);
+    const [showCorp, setShowCorp] = useState(true);
+
+    const filteredData = React.useMemo(() => {
+        if (!geoJsonData) return null;
+
+        // If filters are all on, return original
+        if (showMuni && showCorp) return geoJsonData;
+
+        // Clone to avoid mutating original source if re-used
+        const features = (geoJsonData.features || []).filter((f: any) => {
+            const type = f.properties.Lsgd_Type || f.properties.lsgd_type || f.properties.LB_Type;
+
+            if (!type) return true; // Keep if unknown
+
+            const normalizedType = type.toLowerCase().trim();
+            if (normalizedType.includes('municipality') && !showMuni) return false;
+            // District map might not have corporations in all districts, but if it does:
+            if (normalizedType.includes('corporation') && !showCorp) return false;
+
+            return true;
+        });
+
+        return { ...geoJsonData, features };
+    }, [geoJsonData, showMuni, showCorp]);
+
     useEffect(() => {
         const loadMap = async () => {
             setLoading(true);
@@ -108,21 +135,44 @@ export const DistrictMap: React.FC<DistrictMapProps> = ({
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[calc(100dvh-150px)]">
             <div className="p-4 border-b border-slate-200 bg-white z-10
                 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={onBack}
-                        className="flex items-center gap-1 text-slate-500 hover:text-blue-600 transition-colors"
-                    >
-                        <span>←</span>
-                        <span className="hidden sm:inline">Back to Districts</span>
-                    </button>
-                    <div>
-                        <h2 className="text-lg md:text-xl font-bold text-slate-800">
-                            {districtName}
-                        </h2>
-                        <p className="text-xs md:text-sm text-slate-500">
-                            District Overview
-                        </p>
+                <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={onBack}
+                            className="flex items-center gap-1 text-slate-500 hover:text-blue-600 transition-colors"
+                        >
+                            <span>←</span>
+                            <span className="hidden sm:inline">Back</span>
+                        </button>
+                        <div>
+                            <h2 className="text-lg md:text-xl font-bold text-slate-800">
+                                {districtName}
+                            </h2>
+                            <p className="text-xs md:text-sm text-slate-500">
+                                District Overview
+                            </p>
+                        </div>
+                    </div>
+                    {/* Filters */}
+                    <div className="flex gap-3 text-xs pl-8 md:pl-0">
+                        <label className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-2 py-1 rounded select-none border border-transparent hover:border-slate-200 transition-colors">
+                            <input
+                                type="checkbox"
+                                checked={showMuni}
+                                onChange={e => setShowMuni(e.target.checked)}
+                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
+                            />
+                            <span className="text-slate-700 font-medium">Municipalities</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer hover:bg-slate-50 px-2 py-1 rounded select-none border border-transparent hover:border-slate-200 transition-colors">
+                            <input
+                                type="checkbox"
+                                checked={showCorp}
+                                onChange={e => setShowCorp(e.target.checked)}
+                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
+                            />
+                            <span className="text-slate-700 font-medium">Corporations</span>
+                        </label>
                     </div>
                 </div>
 
@@ -159,7 +209,7 @@ export const DistrictMap: React.FC<DistrictMapProps> = ({
 
                     <div className="h-full w-full">
                         <InteractiveMap
-                            geoJsonData={geoJsonData}
+                            geoJsonData={filteredData}
                             onFeatureClick={handleFeatureClick}
                             onFeatureHover={handleFeatureHover}
                             onFeatureOut={() => setHoveredLB(null)}
