@@ -164,12 +164,9 @@ export const DistrictMap: React.FC<DistrictMapProps> = ({
                             onFeatureHover={handleFeatureHover}
                             onFeatureOut={() => setHoveredLB(null)}
                             interactive={true}
-                            dragging={false}
                             zoomControl={false}
-                            scrollWheelZoom={false}
-                            doubleClickZoom={false}
-                            touchZoom={false}
                             padding={[5, 5]}
+                            maxZoomRelative={1}
                         />
                         {/* Legend Overlay */}
                         <div className="absolute top-4 left-1/2 -translate-x-1/2 md:left-4 md:translate-x-0 z-[400] w-max max-w-[90%]">
@@ -182,16 +179,15 @@ export const DistrictMap: React.FC<DistrictMapProps> = ({
                 <div className="w-full md:w-80 border-l border-slate-200 bg-white p-6 flex flex-col gap-6">
                     {/* Hover Info */}
                     <div className="min-h-[60px]">
-                        <h3 className="text-xs font-bold text-slate-400 uppercase mb-1">Current Selection</h3>
                         {hoveredLB ? (
-                            <div className="text-lg font-bold text-blue-600">{hoveredLB}</div>
+                            <div className="text-sm font-bold text-blue-600">{hoveredLB}</div>
                         ) : (
                             <div className="text-sm text-slate-400 italic">Hover over map to view details</div>
                         )}
 
                         {/* Party Performance */}
                         <div className="overflow-y-auto max-h-[300px] custom-scrollbar pr-1">
-                            <h4 className="font-semibold text-slate-700 mb-3">Party Performance</h4>
+                            <h5 className="font-semibold text-slate-700 mb-3">Party Performance</h5>
                             <PartyWinKPIs trends={trends} localBodies={localBodies} activeTab={activeTab} />
                         </div>
                     </div>

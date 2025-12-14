@@ -213,8 +213,8 @@ function App() {
             className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
             onClick={handleGoHome}
           >
-            <div className="w-15 h-15 bg-white-300 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-600/20">
-            <img src={Logo} alt="Logo" className="w-15 h-15" />
+            <div className="w-18 h-18 bg-white-500 rounded-xl flex items-center justify-center text-white font-bold text-xl">
+            <img src={Logo} alt="Logo" className="w-18 h-18" />
           </div>
             <div>
               <h1 className="text-xl font-bold text-slate-900 tracking-tight leading-none">2025 Kerala LSG Election Portal</h1>

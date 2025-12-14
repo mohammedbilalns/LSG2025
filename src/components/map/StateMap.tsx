@@ -97,12 +97,9 @@ export const StateMap: React.FC<StateMapProps> = ({
                             onFeatureHover={handleFeatureHover}
                             onFeatureOut={() => setHoveredInfo(null)}
                             interactive={true}
-                            dragging={false}
                             zoomControl={false}
-                            scrollWheelZoom={false}
-                            doubleClickZoom={false}
-                            touchZoom={false}
                             padding={[5, 5]}
+                            maxZoomRelative={2}
                         />
                         {/* Legend Overlay */}
                         <div className="absolute top-4 left-1/2 -translate-x-1/2 md:left-4 md:translate-x-0 z-[400] w-max max-w-[90%]">
@@ -114,7 +111,6 @@ export const StateMap: React.FC<StateMapProps> = ({
                 {/* Right Sidebar - Legend & Info */}
                 <div className="w-full md:w-80 border-l border-slate-200 bg-white p-6 flex flex-col gap-6">
                     <div className="min-h-[60px]">
-                        <h3 className="text-xs font-bold text-slate-400 uppercase mb-1">Details</h3>
                         {hoveredInfo ? (
                             <div>
                                 <div className="text-sm font-bold text-slate-800 leading-tight">{hoveredInfo.name}</div>

@@ -11,14 +11,14 @@ export const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClos
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm transition-all">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
-                <div className="p-6">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-100">
+                <div className="p-4">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3 text-amber-600">
                             <div className="p-2 bg-amber-50 rounded-xl">
                                 <AlertTriangle size={24} />
                             </div>
-                            <h3 className="text-lg font-bold text-slate-900">Disclaimer</h3>
+                            <h3 className="text-lm font-bold text-slate-900">Disclaimer</h3>
                         </div>
                         <button
                             onClick={onClose}
@@ -28,7 +28,7 @@ export const DisclaimerModal: React.FC<DisclaimerModalProps> = ({ isOpen, onClos
                         </button>
                     </div>
 
-                    <div className="prose prose-sm text-slate-600">
+                    <div className="prose prose-sm text-slate-800">
                         <p className="leading-relaxed">
                             The accuracy or completeness of the data presented on this page cannot be guaranteed.
                             The information has been sourced from the SEC Kerala website.

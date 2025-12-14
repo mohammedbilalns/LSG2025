@@ -9,46 +9,67 @@ import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 
 let DefaultIcon = L.icon({
-    iconUrl: icon,
-    shadowUrl: iconShadow,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41]
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41]
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
 interface InteractiveMapProps {
-    geoJsonData: any | null;
-    onFeatureClick?: (feature: any) => void;
-    onFeatureHover?: (feature: any, event: L.LeafletMouseEvent) => void;
-    onFeatureOut?: () => void;
-    interactive?: boolean;
-    zoomControl?: boolean;
-    dragging?: boolean;
-    scrollWheelZoom?: boolean;
-    touchZoom?: boolean;
-    doubleClickZoom?: boolean;
-    padding?: [number, number];
+  geoJsonData: any | null;
+  onFeatureClick?: (feature: any) => void;
+  onFeatureHover?: (feature: any, event: L.LeafletMouseEvent) => void;
+  onFeatureOut?: () => void;
+  interactive?: boolean;
+  zoomControl?: boolean;
+  dragging?: boolean;
+  scrollWheelZoom?: boolean;
+  touchZoom?: boolean;
+  doubleClickZoom?: boolean;
+  padding?: [number, number];
+  maxZoomRelative?: number;
 }
 
-const MapController: React.FC<{ data: any; padding?: [number, number] }> = ({ data, padding = [20, 20] }) => {
-    const map = useMap();
-    useEffect(() => {
-        if (data) {
-            const layer = L.geoJSON(data);
-            try {
-                const b = layer.getBounds();
-                if (b.isValid()) {
-                    map.fitBounds(b, { padding });
-                    map.invalidateSize();
-                }
-            } catch (e) {
-                console.warn("Could not fit bounds", e);
+const MapController: React.FC<{ data: any; padding?: [number, number]; maxZoomRelative?: number }> = ({ data, padding = [20, 20], maxZoomRelative }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (data) {
+      const layer = L.geoJSON(data);
+      try {
+        const b = layer.getBounds();
+        if (b.isValid()) {
+          // Function to apply fit
+          const fit = () => {
+            map.invalidateSize();
+            map.fitBounds(b, { padding, animate: false });
+
+            // Set constraints immediately after fitting (since animate: false)
+            if (maxZoomRelative !== undefined) {
+              const currentZoom = map.getZoom();
+              map.setMinZoom(currentZoom);
+              map.setMaxZoom(currentZoom + maxZoomRelative);
             }
+          };
+
+          // Attempt immediate fit
+          map.invalidateSize();
+          // map.fitBounds(b, { padding, animate: false }); // Optional: try immediate
+
+          // Delay to ensure container geometry is final (flexbox layout etc)
+          const timer = setTimeout(() => {
+            fit();
+          }, 250); // Increased delay to 250ms
+
+          return () => clearTimeout(timer);
         }
-        // Force resize
-        map.invalidateSize();
-    }, [data, map, padding?.[0], padding?.[1]]); // Only check values, not array reference
-    return null;
+      } catch (e) {
+        console.warn("Could not fit bounds", e);
+      }
+    }
+    return undefined;
+  }, [data, map, padding?.[0], padding?.[1], maxZoomRelative]); // Only check values, not array reference
+  return null;
 };
 
 type TopoJSON = {
@@ -58,23 +79,23 @@ type TopoJSON = {
 
 const process = (geoJsonData: TopoJSON): GeoJSON.GeoJsonObject | null => {
   if (geoJsonData) {
-      let dataToRender = geoJsonData;
+    let dataToRender = geoJsonData;
 
-      // Handle TopoJSON
-      if (geoJsonData.type === 'Topology') {
-          try {
-              const objects = geoJsonData.objects;
-              const objectName = Object.keys(objects)[0]; // Pick first object
-              if (objectName) {
-                  dataToRender = feature(geoJsonData, objects[objectName]);
-              }
-          } catch (err) {
-              console.error("TopoJSON conversion error:", err);
-          }
+    // Handle TopoJSON
+    if (geoJsonData.type === 'Topology') {
+      try {
+        const objects = geoJsonData.objects;
+        const objectName = Object.keys(objects)[0]; // Pick first object
+        if (objectName) {
+          dataToRender = feature(geoJsonData, objects[objectName]);
+        }
+      } catch (err) {
+        console.error("TopoJSON conversion error:", err);
       }
+    }
     return dataToRender as GeoJSON.GeoJsonObject;
   } else {
-      return null;
+    return null;
   }
 }
 
@@ -89,7 +110,8 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   scrollWheelZoom,
   touchZoom,
   doubleClickZoom,
-  padding = [20, 20]
+  padding = [20, 20],
+  maxZoomRelative
 }) => {
   const processedData = process(geoJsonData);
 
@@ -157,7 +179,7 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
           style={style}
           onEachFeature={onEachFeature}
         />
-        <MapController data={processedData} padding={padding} />
+        <MapController data={processedData} padding={padding} maxZoomRelative={maxZoomRelative} />
       </MapContainer>
     );
   }
