@@ -19,7 +19,7 @@ const initialStats = (): Stats => ({
     totalBodies: 0,
     totalWards: 0,
     bodiesLed: { LDF: 0, UDF: 0, NDA: 0, IND: 0, Hung: 0, Others: 0 },
-    wardsWon: { LDF: 0, UDF: 0, NDA: 0, IND: 0, Others: 0 },
+    wardsWon: { LDF: 0, UDF: 0, NDA: 0, IND: 0, Tie: 0, Others: 0 },
 });
 
 export const PartyWinKPIs: React.FC<PartyWinKPIsProps> = ({ trends, localBodies, activeTab = 'grama' }) => {
@@ -63,6 +63,7 @@ export const PartyWinKPIs: React.FC<PartyWinKPIsProps> = ({ trends, localBodies,
             s.wardsWon['UDF'] += trend.UDF_Seats;
             s.wardsWon['NDA'] += trend.NDA_Seats;
             s.wardsWon['IND'] += trend.IND_Seats;
+            s.wardsWon['Tie'] += (trend.Tie_Seats || 0);
             // Note: IND effectively captures Independents/Others based on dataService logic
         });
 
@@ -105,33 +106,60 @@ export const PartyWinKPIs: React.FC<PartyWinKPIsProps> = ({ trends, localBodies,
     const categories = getOrderedCategories();
 
     const renderFrontStats = (statsMap: Record<string, number>, type: 'bodies' | 'wards') => {
-        const total = type === 'bodies'
-            ? Object.values(statsMap).reduce((a, b) => a + b, 0)
-            : Object.values(statsMap).reduce((a, b) => a + b, 0); // Logic same, but semantic diff
+        const total = Object.values(statsMap).reduce((a, b) => a + b, 0);
 
         if (total === 0) return <div className="text-xs text-slate-400">No data</div>;
 
         // Order: LDF, UDF, NDA, IND/Others
         const groups = ['LDF', 'UDF', 'NDA'];
-        const others = type === 'bodies' ? (statsMap['IND'] + statsMap['Hung'] + statsMap['Others']) : (statsMap['IND'] + statsMap['Others']);
+        const others = type === 'bodies'
+            ? (statsMap['IND'] + statsMap['Others']) // Exclude Hung from "Others" for bodies
+            : (statsMap['IND'] + statsMap['Others']);
+
+        const hung = statsMap['Hung'] || 0;
+        const tie = statsMap['Tie'] || 0;
+
+        const anySecondary = others > 0 || (type === 'bodies' && hung > 0) || (type === 'wards' && tie > 0);
 
         return (
-            <div className="flex gap-2 text-xs font-medium">
-                {groups.map(g => (
-                    statsMap[g] > 0 && (
-                        <div key={g} className={`flex items-center gap-1 ${g === 'LDF' ? 'text-red-600' :
+            <div className="flex flex-col gap-1.5">
+                {/* Main Fronts */}
+                <div className="flex gap-2 text-xs font-medium flex-wrap">
+                    {groups.map(g => (
+                        statsMap[g] > 0 && (
+                            <div key={g} className={`flex items-center gap-1 ${g === 'LDF' ? 'text-red-600' :
                                 g === 'UDF' ? 'text-indigo-600' :
                                     g === 'NDA' ? 'text-orange-600' : 'text-slate-600'
-                            }`}>
-                            <span>{g}:</span>
-                            <span>{statsMap[g]}</span>
-                        </div>
-                    )
-                ))}
-                {others > 0 && (
-                    <div className="flex items-center gap-1 text-slate-600">
-                        <span>Oth:</span>
-                        <span>{others}</span>
+                                }`}>
+                                <span>{g}:</span>
+                                <span>{statsMap[g]}</span>
+                            </div>
+                        )
+                    ))}
+                </div>
+
+                {/* Secondary: Others, Hung, Tie */}
+                {anySecondary && (
+                    <div className="flex gap-2 text-xs text-slate-500 font-medium flex-wrap border-t border-slate-100 pt-1 border-dashed">
+                        {others > 0 && (
+                            <div className="flex items-center gap-1">
+                                <span>Oth:</span>
+                                <span>{others}</span>
+                            </div>
+                        )}
+
+                        {type === 'bodies' && hung > 0 && (
+                            <div className="flex items-center gap-1 font-semibold">
+                                <span className="text-[10px] uppercase bg-slate-100 px-1 rounded text-slate-600">Hung: {hung}</span>
+                            </div>
+                        )}
+
+                        {type === 'wards' && tie > 0 && (
+                            <div className="flex items-center gap-1 font-semibold">
+                                <span>Tie:</span>
+                                <span>{tie}</span>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

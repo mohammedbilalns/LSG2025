@@ -10,6 +10,7 @@ export interface TrendResult {
     UDF_Seats: number;
     NDA_Seats: number;
     IND_Seats: number;
+    Tie_Seats: number;
     Leading_Front: string;
     LDF_Vote_Share: string;
     UDF_Vote_Share: string;
@@ -166,7 +167,7 @@ export const fetchTrendResults = async (): Promise<TrendResult[]> => {
     // const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
     // const url = `${baseUrl}data/csv/trend_detailed_results_2025.csv`;
     // data gets updated independently
-  const url = "https://raw.githubusercontent.com/opendatakerala/LSGD2025-Results-Data/refs/heads/main/trend_detailed_results_2025.csv";
+    const url = "https://raw.githubusercontent.com/opendatakerala/LSGD2025-Results-Data/refs/heads/main/trend_detailed_results_2025.csv";
 
 
     try {
@@ -211,6 +212,7 @@ export const fetchTrendResults = async (): Promise<TrendResult[]> => {
                                 UDF_Seats: 0,
                                 NDA_Seats: 0,
                                 IND_Seats: 0,
+                                Tie_Seats: 0,
                                 Leading_Front: 'N/A',
                                 LDF_Vote_Share: '0%',
                                 UDF_Vote_Share: '0%',
@@ -268,28 +270,40 @@ export const fetchTrendResults = async (): Promise<TrendResult[]> => {
 
                             // Clear any existing status flags
                             ward.candidates.forEach(c => {
-                            c.status = ''; // or null / '' depending on your schema
+                                c.status = ''; // or null / '' depending on your schema
                             });
 
                             // Highest-vote candidate is the winner (if any)
                             const topCandidate = ward.candidates[0];
+                            const secondCandidate = ward.candidates[1];
 
                             if (topCandidate && topCandidate.votes > 0) {
-                            topCandidate.status = 'won';   // ✅ only this one gets 'won'
-                            ward.winner = topCandidate;
-                            calculatedWardsDeclared++;
+                                // Check for Tie
+                                if (secondCandidate && secondCandidate.votes === topCandidate.votes) {
+                                    // It's a tie
+                                    trend.Tie_Seats++;
+                                    // No one wins, effectively. 'status' remains empty or could be 'tie'
+                                    topCandidate.status = 'tie';
+                                    secondCandidate.status = 'tie';
+                                    calculatedWardsDeclared++;
+                                } else {
+                                    // Clear winner
+                                    topCandidate.status = 'won';
+                                    ward.winner = topCandidate;
+                                    calculatedWardsDeclared++;
 
-                            const group = topCandidate.group;
-                            if (group === 'LDF') trend.LDF_Seats++;
-                            else if (group === 'UDF') trend.UDF_Seats++;
-                            else if (group === 'NDA') trend.NDA_Seats++;
-                            else trend.IND_Seats++;
+                                    const group = topCandidate.group;
+                                    if (group === 'LDF') trend.LDF_Seats++;
+                                    else if (group === 'UDF') trend.UDF_Seats++;
+                                    else if (group === 'NDA') trend.NDA_Seats++;
+                                    else trend.IND_Seats++;
+                                }
                             }
                             // If no candidate or all votes are 0, no winner; ward not counted
                         });
 
                         trend.Wards_Declared = calculatedWardsDeclared;
-                        });
+                    });
 
                     const aggregatedTrends = Array.from(lbMap.values()).map(trend => {
                         const { LDF_Seats, UDF_Seats, NDA_Seats, IND_Seats } = trend;

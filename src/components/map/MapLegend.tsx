@@ -19,7 +19,11 @@ export const MapLegend: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-1.5 md:gap-2">
                     <div className="w-2 h-2 rounded-sm bg-slate-500"></div>
-                    <span className="text-[10px] md:text-xs font-medium text-slate-600">Others</span>
+                    <span className="text-[10px] md:text-xs font-medium text-slate-600">OTH</span>
+                </div>
+                <div className="flex items-center gap-1.5 md:gap-2">
+                    <div className="w-2 h-2 rounded-sm bg-gray-400"></div>
+                    <span className="text-[10px] md:text-xs font-medium text-slate-600">HUNG</span>
                 </div>
             </div>
         </div>
