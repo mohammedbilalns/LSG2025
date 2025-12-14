@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { InteractiveMap } from './InteractiveMap';
 import type { LocalBody, TrendResult } from '../../services/dataService';
 import { feature } from 'topojson-client';
+import { PartyWinKPIs } from './PartyWinKPIs';
+import { MapLegend } from './MapLegend';
 
 interface DistrictMapProps {
     districtName: string;
@@ -98,17 +100,9 @@ export const DistrictMap: React.FC<DistrictMapProps> = ({
         setHoveredLB(name);
     };
 
-    // Calculate stats based on active tab
-    const filteredLBs = localBodies.filter(lb => {
-        const type = lb.lb_type.toLowerCase();
-        if (activeTab === 'grama') return ['grama panchayat', 'municipality', 'municipal corporation'].includes(type);
-        if (activeTab === 'block') return type === 'block panchayat';
-        if (activeTab === 'district') return type === 'district panchayat';
-        return false;
-    });
 
-    const totalLBs = filteredLBs.length;
-    const totalWards = filteredLBs.reduce((sum, lb) => sum + lb.total_wards, 0);
+
+
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[calc(100dvh-150px)]">
@@ -116,39 +110,38 @@ export const DistrictMap: React.FC<DistrictMapProps> = ({
                 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-4">
                     <button
-                    onClick={onBack}
-                    className="flex items-center gap-1 text-slate-500 hover:text-blue-600 transition-colors"
+                        onClick={onBack}
+                        className="flex items-center gap-1 text-slate-500 hover:text-blue-600 transition-colors"
                     >
-                    <span>←</span>
-                    <span className="hidden sm:inline">Back to Districts</span>
+                        <span>←</span>
+                        <span className="hidden sm:inline">Back to Districts</span>
                     </button>
                     <div>
-                    <h2 className="text-lg md:text-xl font-bold text-slate-800">
-                        {districtName}
-                    </h2>
-                    <p className="text-xs md:text-sm text-slate-500">
-                        District Overview
-                    </p>
+                        <h2 className="text-lg md:text-xl font-bold text-slate-800">
+                            {districtName}
+                        </h2>
+                        <p className="text-xs md:text-sm text-slate-500">
+                            District Overview
+                        </p>
                     </div>
                 </div>
 
                 {/* Tabs */}
                 <div className="flex bg-slate-100 p-1 rounded-lg self-start md:self-auto">
                     {(['district', 'block', 'grama'] as const).map((tab) => (
-                    <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                        activeTab === tab
-                            ? 'bg-white text-blue-600 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
-                        }`}
-                    >
-                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                    </button>
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === tab
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                        </button>
                     ))}
                 </div>
-                </div>
+            </div>
 
 
             <div className="flex-1 flex flex-col md:flex-row">
@@ -178,6 +171,10 @@ export const DistrictMap: React.FC<DistrictMapProps> = ({
                             touchZoom={false}
                             padding={[5, 5]}
                         />
+                        {/* Legend Overlay */}
+                        <div className="absolute top-4 left-1/2 -translate-x-1/2 md:left-4 md:translate-x-0 z-[400] w-max max-w-[90%]">
+                            <MapLegend />
+                        </div>
                     </div>
                 </div>
 
@@ -191,20 +188,14 @@ export const DistrictMap: React.FC<DistrictMapProps> = ({
                         ) : (
                             <div className="text-sm text-slate-400 italic">Hover over map to view details</div>
                         )}
-                    </div>
 
-                    {/* Stats */}
-                    <div className="space-y-4">
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                            <div className="text-sm text-slate-500 mb-1">Total {activeTab === 'district' ? 'District Panchayat' : activeTab === 'block' ? 'Block Panchayats' : 'Local Bodies'}</div>
-                            <div className="text-3xl font-bold text-slate-800">{totalLBs}</div>
-                        </div>
-
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                            <div className="text-sm text-slate-500 mb-1">Total Wards</div>
-                            <div className="text-3xl font-bold text-slate-800">{totalWards}</div>
+                        {/* Party Performance */}
+                        <div className="overflow-y-auto max-h-[300px] custom-scrollbar pr-1">
+                            <h4 className="font-semibold text-slate-700 mb-3">Party Performance</h4>
+                            <PartyWinKPIs trends={trends} localBodies={localBodies} activeTab={activeTab} />
                         </div>
                     </div>
+
 
                     <div className="mt-auto p-4 bg-blue-50 rounded-lg border border-blue-100">
                         <p className="text-sm text-blue-800">

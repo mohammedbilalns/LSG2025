@@ -1,22 +1,25 @@
-import React, {  useState } from 'react';
+import React, { useState } from 'react';
 import { InteractiveMap } from './InteractiveMap';
-import type { TrendResult } from '../../services/dataService';
+import type { TrendResult, LocalBody } from '../../services/dataService';
 import { useMap } from '../../services/map';
-
+import { PartyWinKPIs } from './PartyWinKPIs';
+import { MapLegend } from './MapLegend';
 
 interface StateMapProps {
     trends: TrendResult[];
+    localBodies: LocalBody[];
     onSelectLB: (lbCode: string, districtName: string, type: string) => void;
 }
 
 const tabToFile = {
-  "district": "districts.json",
-  "block": "block-panchayats.json",
-  "grama": "grama-panchayats.json"
+    "district": "districts.json",
+    "block": "block-panchayats.json",
+    "grama": "grama-panchayats.json"
 }
 
 export const StateMap: React.FC<StateMapProps> = ({
     trends,
+    localBodies,
     onSelectLB
 }) => {
     const [activeTab, setActiveTab] = useState<'district' | 'block' | 'grama'>('grama');
@@ -71,8 +74,9 @@ export const StateMap: React.FC<StateMapProps> = ({
                 </div>
             </div>
 
-            <div className="flex-1 flex flex-col md:flex-row">
-                <div className="flex-1 relative bg-slate-50 min-h-[90vh] md:min-h-[1000px]">
+            <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden">
+                {/* overflow-hidden added to container to ensure scrolling within children if needed */}
+                <div className="flex-1 relative bg-slate-50 min-h-[50vh] md:min-h-0">
                     {map.isLoading && (
                         <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/50 backdrop-blur-sm">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -93,25 +97,27 @@ export const StateMap: React.FC<StateMapProps> = ({
                             onFeatureHover={handleFeatureHover}
                             onFeatureOut={() => setHoveredInfo(null)}
                             interactive={true}
-                            dragging={true}
-                            zoomControl={true}
-                            scrollWheelZoom={true}
+                            dragging={false}
+                            zoomControl={false}
+                            scrollWheelZoom={false}
                             doubleClickZoom={false}
                             touchZoom={false}
                             padding={[5, 5]}
                         />
+                        {/* Legend Overlay */}
+                        <div className="absolute top-4 left-1/2 -translate-x-1/2 md:left-4 md:translate-x-0 z-[400] w-max max-w-[90%]">
+                            <MapLegend />
+                        </div>
                     </div>
                 </div>
 
                 {/* Right Sidebar - Legend & Info */}
                 <div className="w-full md:w-80 border-l border-slate-200 bg-white p-6 flex flex-col gap-6">
-
-                    {/* Hover Info */}
-                    <div className="min-h-[80px]">
+                    <div className="min-h-[60px]">
                         <h3 className="text-xs font-bold text-slate-400 uppercase mb-1">Details</h3>
                         {hoveredInfo ? (
                             <div>
-                                <div className="text-lg font-bold text-slate-800 leading-tight">{hoveredInfo.name}</div>
+                                <div className="text-sm font-bold text-slate-800 leading-tight">{hoveredInfo.name}</div>
                                 <div className="text-sm text-slate-500 mb-2">{hoveredInfo.district}</div>
                                 {hoveredInfo.trend ? (
                                     <div className="flex items-center gap-2">
@@ -134,20 +140,15 @@ export const StateMap: React.FC<StateMapProps> = ({
                         ) : (
                             <div className="text-sm text-slate-400 italic">Hover over map to view results</div>
                         )}
-                    </div>
 
-                    {/* Legend */}
-                    <div>
-                        <h4 className="font-semibold text-slate-700 mb-3">Legend</h4>
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-3"><div className="w-4 h-4 rounded bg-red-500"></div><span className="text-sm">LDF</span></div>
-                            <div className="flex items-center gap-3"><div className="w-4 h-4 rounded bg-indigo-500"></div><span className="text-sm">UDF</span></div>
-                            <div className="flex items-center gap-3"><div className="w-4 h-4 rounded bg-orange-500"></div><span className="text-sm">NDA</span></div>
-                            <div className="flex items-center gap-3"><div className="w-4 h-4 rounded bg-slate-500"></div><span className="text-sm">Others / Hung</span></div>
+                        {/* Party Performance */}
+                        <div className="overflow-y-auto max-h-[300px] custom-scrollbar pr-1 mt-6">
+                            <h4 className="font-semibold text-slate-700 mb-3">Party Performance</h4>
+                            <PartyWinKPIs trends={trends} localBodies={localBodies} activeTab={activeTab} />
                         </div>
                     </div>
 
-                    <div className="mt-auto p-4 bg-blue-50 rounded-lg border border-blue-100">
+                    <div className="mt-auto p-6 bg-blue-50 rounded-lg border border-blue-100">
                         <p className="text-sm text-blue-800">
                             Click on any area to drill down into the detailed view.
                         </p>

@@ -77,6 +77,7 @@ export const MapDashboard: React.FC<MapDashboardProps> = () => {
         {view === "districts" && allTrends.data && (
           <StateMap
             trends={allTrends.data}
+            localBodies={allLocalBodies.data || []}
             onSelectLB={handleStateMapSelection}
           />
         )}
