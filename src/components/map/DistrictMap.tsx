@@ -4,6 +4,7 @@ import type { LocalBody, TrendResult } from '../../services/dataService';
 import { feature } from 'topojson-client';
 import { PartyWinKPIs } from './PartyWinKPIs';
 import { MapLegend } from './MapLegend';
+import { ArrowLeft } from 'lucide-react';
 
 interface DistrictMapProps {
     districtName: string;
@@ -139,10 +140,9 @@ export const DistrictMap: React.FC<DistrictMapProps> = ({
                     <div className="flex items-center gap-4">
                         <button
                             onClick={onBack}
-                            className="flex items-center gap-1 text-slate-500 hover:text-blue-600 transition-colors"
+                            className="p-2 hover:bg-white rounded-lg transition-colors text-slate-500 hover:text-slate-700 shadow-sm border border-transparent hover:border-slate-200"
                         >
-                            <span>←</span>
-                            <span className="hidden sm:inline">Back</span>
+                            <ArrowLeft size={20} />
                         </button>
                         <div>
                             <h2 className="text-lg md:text-xl font-bold text-slate-800">

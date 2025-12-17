@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { InteractiveMap } from './InteractiveMap';
 import type { TrendResult } from '../../services/dataService';
+import { ArrowLeft } from 'lucide-react';
 
 interface LocalBodyTrendMapProps {
     lbName: string;
@@ -124,9 +125,9 @@ export const LocalBodyTrendMap: React.FC<LocalBodyTrendMapProps> = ({
                 <div className="flex items-center gap-4">
                     <button
                         onClick={onBack}
-                        className="text-slate-500 hover:text-blue-600 transition-colors"
+                        className="p-2 hover:bg-white rounded-lg transition-colors text-slate-500 hover:text-slate-700 shadow-sm border border-transparent hover:border-slate-200"
                     >
-                        ← Back
+                        <ArrowLeft size={20} />
                     </button>
                     <div>
                         <h2 className="text-xl font-bold text-slate-800">{lbName}</h2>
