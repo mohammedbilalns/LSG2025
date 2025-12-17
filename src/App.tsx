@@ -103,20 +103,25 @@ function App() {
         // Always fetch GeoJSON for the selected local body (used in DetailPanel)
         const fixDistrictName = (name: string) => {
             const titleCase = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-            if (titleCase === 'Thiruvananthapuram') return 'Thiruvanathapuram';
+            // Directory is 'Thiruvananthapuram', so we ensure we use that.
+            // If input is 'Thiruvanathapuram' (missing n), fix it? 
+            // Usually data comes as 'Thiruvananthapuram'.
+            // Just ensure consistency:
+            if (titleCase === 'Thiruvanathapuram') return 'Thiruvananthapuram';
             return titleCase;
         };
 
         const district = fixDistrictName(lb.district_name);
-        const type = lb.lb_type;
-        const name = lb.lb_name_english;
+        // const type = lb.lb_type; 
+        // const name = lb.lb_name_english;
+        // We now rely on lb.lb_code for fetching map
 
         setDistrict(district);
-        setType(type);
-        setName(name);
+        setType(lb.lb_type);
+        setName(lb.lb_name_english);
     };
 
-    const map = useGeoJSONMap(district, type, name)
+    const map = useGeoJSONMap(district, type, name, selectedLocalBody?.lb_code);
 
     const handleClearSelection = async () => {
         // Determine if we should go back to a drill-down view instead of the home dashboard

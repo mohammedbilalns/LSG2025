@@ -83,13 +83,17 @@ export const useMap = (file: string, trends: Trend[]) =>
 
 const BASE_URL = import.meta.env.BASE_URL;
 
-const fetchGeoJSON = async (
+const fetchGeoJSONByCode = async (
   district: string,
-  type: string,
-  name: string,
+  code: string,
 ) => {
-  if (district && type && name) {
-    const url = `${BASE_URL}data/geojson/${district}/${type}/${name}.json`;
+  if (district && code) {
+    // Ensure district title case
+    const titleCaseDistrict = district.charAt(0).toUpperCase() + district.slice(1).toLowerCase();
+    // Fix common spelling issues if any - strictly matching directory names
+    const finalDistrict = titleCaseDistrict === 'Thiruvanathapuram' ? 'Thiruvananthapuram' : titleCaseDistrict;
+
+    const url = `${BASE_URL}data/geojson/Kerala/districts/${finalDistrict}/${code}.json`;
     const response = await fetch(url);
     if (!response.ok) throw new Error("GeoJSON not found");
     return await response.json();
@@ -98,12 +102,13 @@ const fetchGeoJSON = async (
 
 export const useGeoJSONMap = (
   district: string | undefined,
-  type: string | undefined,
-  name: string | undefined,
+  _type: string | undefined,
+  _name: string | undefined,
+  code: string | undefined
 ) => {
   return useQuery({
-    queryKey: ["geomap", district, type, name],
-    queryFn: () => fetchGeoJSON(district!, type!, name!),
-    enabled: !!district && !!type && !!name,
+    queryKey: ["geomap", district, code],
+    queryFn: () => fetchGeoJSONByCode(district!, code!),
+    enabled: !!district && !!code,
   });
 };

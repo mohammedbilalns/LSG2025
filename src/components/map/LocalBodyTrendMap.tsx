@@ -51,34 +51,48 @@ export const LocalBodyTrendMap: React.FC<LocalBodyTrendMapProps> = ({
                         // Usually GeoJSON from SEC has Ward_No or we can infer it.
                         // Let's assume standard "Ward_No" from previous context or "ward_no"
                         // Or "Ward No"
-                        const wardNo = String(props.Ward_No || props.ward_no || props['Ward No'] || props.WARD_NO || props.Ward);
+                        // Determine if this is a Ward feature or the LSG boundary
+                        const wardNoProp = props.Ward_No || props.ward_no || props['Ward No'] || props.WARD_NO || props.Ward;
 
-                        const info = trendData.wardInfo?.[wardNo];
-
+                        let wardNo = '';
                         let color = '#e2e8f0'; // Default slate-200 for no data
 
-                        if (info) {
-                            const winner = info.winner;
-                            // Fallback to leading if available, else top candidate
-                            const topCandidate = info.candidates?.[0];
-                            const isImplicitLead = !winner && !info.leading && topCandidate && topCandidate.votes > 0;
-                            const leader = info.leading || (isImplicitLead ? topCandidate : undefined);
+                        if (wardNoProp) {
+                            wardNo = String(wardNoProp);
+                            const info = trendData.wardInfo?.[wardNo];
 
-                            if (winner) {
-                                switch (winner.group) {
-                                    case 'LDF': color = '#ef4444'; break;
-                                    case 'UDF': color = '#2768F5'; break; //dark blue instead of green
-                                    case 'NDA': color = '#f97316'; break;
-                                    default: color = '#64748b'; break; // Others
+                            if (info) {
+                                const winner = info.winner;
+                                // Fallback to leading if available, else top candidate
+                                const topCandidate = info.candidates?.[0];
+                                const isImplicitLead = !winner && !info.leading && topCandidate && topCandidate.votes > 0;
+                                const leader = info.leading || (isImplicitLead ? topCandidate : undefined);
+
+                                if (winner) {
+                                    switch (winner.group) {
+                                        case 'LDF': color = '#ef4444'; break;
+                                        case 'UDF': color = '#2768F5'; break; //dark blue instead of green
+                                        case 'NDA': color = '#f97316'; break;
+                                        default: color = '#64748b'; break; // Others
+                                    }
+                                } else if (leader) {
+                                    // Lighter colors for leading
+                                    switch (leader.group) {
+                                        case 'LDF': color = '#fca5a5'; break; // red-300
+                                        case 'UDF': color = '#2768F5'; break; // dark-blue
+                                        case 'NDA': color = '#fdba74'; break; // orange-300
+                                        default: color = '#cbd5e1'; break; // slate-300
+                                    }
                                 }
-                            } else if (leader) {
-                                // Lighter colors for leading
-                                switch (leader.group) {
-                                    case 'LDF': color = '#fca5a5'; break; // red-300
-                                    case 'UDF': color = '#2768F5'; break; // dark-blue
-                                    case 'NDA': color = '#fdba74'; break; // orange-300
-                                    default: color = '#cbd5e1'; break; // slate-300
-                                }
+                            }
+                        } else {
+                            // Fallback to LSG Leader if no ward info (e.g. LSG boundary map)
+                            switch (trendData.Leading_Front) {
+                                case 'LDF': color = '#ef4444'; break;
+                                case 'UDF': color = '#2768F5'; break;
+                                case 'NDA': color = '#f97316'; break;
+                                case 'Hung': color = '#64748b'; break;
+                                case 'IND': color = '#94a3b8'; break;
                             }
                         }
 
