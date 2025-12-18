@@ -1,83 +1,19 @@
 import type { LocalBody, Ward, PollingStation, TrendResult } from '../../services/dataService';
 import { ArrowLeft, MapPin, Vote, Users, Building2, Trophy } from 'lucide-react';
-import { InteractiveMap } from '../map/InteractiveMap';
-import { useState, useEffect } from 'react';
+import { SVGMap } from '../map/SVGMap';
 
 interface DetailPanelProps {
     localBody: LocalBody;
     onBack: () => void;
     wards: Ward[];
     pollingStations: PollingStation[];
-    geoJsonData: any | null;
     localBodies: LocalBody[];
     trendData?: TrendResult;
 }
 
-export const DetailPanel: React.FC<DetailPanelProps> = ({ localBody, onBack, wards, pollingStations, geoJsonData, localBodies, trendData }) => {
-    const [processedGeoJson, setProcessedGeoJson] = useState<any>(null);
-
-    useEffect(() => {
-        if (geoJsonData && trendData) {
-            const processedFeatures = geoJsonData.features.map((feature: any) => {
-                const props = feature.properties;
-                // Determine if this is a Ward feature or the LSG boundary
-                // Determine if this is a Ward feature or the LSG boundary
-                const wardNoProp = props.Ward_No || props.ward_no || props['Ward No'] || props.WARD_NO || props.Ward;
-
-                let wardNo = '';
-                let color = '#e2e8f0'; // Default slate-200
-
-                if (wardNoProp) {
-                    wardNo = String(wardNoProp);
-                    const info = trendData.wardInfo?.[wardNo];
-
-                    if (info) {
-                        const winner = info.winner;
-                        const topCandidate = info.candidates?.[0];
-                        const isImplicitLead = !winner && !info.leading && topCandidate && topCandidate.votes > 0;
-                        const leader = info.leading || (isImplicitLead ? topCandidate : undefined);
-
-                        if (winner) {
-                            switch (winner.group) {
-                                case 'LDF': color = '#ef4444'; break;
-                                case 'UDF': color = '#2768F5'; break;
-                                case 'NDA': color = '#f97316'; break;
-                                default: color = '#64748b'; break;
-                            }
-                        } else if (leader) {
-                            switch (leader.group) {
-                                case 'LDF': color = '#fca5a5'; break;
-                                case 'UDF': color = '#2768F5'; break; // dark blue
-                                case 'NDA': color = '#fdba74'; break;
-                                default: color = '#cbd5e1'; break;
-                            }
-                        }
-                    }
-                } else {
-                    // Fallback to LSG Leader if no ward info (e.g. LSG boundary map)
-                    switch (trendData.Leading_Front) {
-                        case 'LDF': color = '#ef4444'; break;
-                        case 'UDF': color = '#2768F5'; break;
-                        case 'NDA': color = '#f97316'; break;
-                        case 'Hung': color = '#64748b'; break;
-                        case 'IND': color = '#94a3b8'; break;
-                    }
-                }
-
-                return {
-                    ...feature,
-                    properties: {
-                        ...props,
-                        _fillColor: color,
-                        _wardNo: wardNo
-                    }
-                };
-            });
-            setProcessedGeoJson({ ...geoJsonData, features: processedFeatures });
-        } else {
-            setProcessedGeoJson(geoJsonData);
-        }
-    }, [geoJsonData, trendData]);
+export const DetailPanel: React.FC<DetailPanelProps> = ({ localBody, onBack, wards, pollingStations, localBodies, trendData }) => {
+    // SVG Map handles coloring internally now.
+    // Preserving logic structure if we ever need to pass raw GeoJSON again, but cleaning up heavy processing.
 
     const lbWards = wards.filter(w => w.lb_code === localBody.lb_code);
 
@@ -120,14 +56,9 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ localBody, onBack, war
             <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {/* Map Section */}
                 <div className="h-64 w-full bg-slate-200 relative">
-                    <InteractiveMap
-                        geoJsonData={processedGeoJson}
-                        interactive={true}
-                        zoomControl={false}
-                        scrollWheelZoom={false}
-                        doubleClickZoom={false}
-                        touchZoom={false}
-                        padding={[20, 20]}
+                    <SVGMap
+                        url={`${import.meta.env.BASE_URL}data/geojson/Kerala/district_wards/${(localBody.district_name === 'Thiruvanathapuram' ? 'Thiruvananthapuram' : localBody.district_name)}/${localBody.lb_code}.svg`}
+                        trendData={trendData}
                     />
                 </div>
 

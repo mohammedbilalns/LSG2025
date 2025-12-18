@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { InteractiveMap } from './InteractiveMap';
 import type { LocalBody, TrendResult } from '../../services/dataService';
-import { feature } from 'topojson-client';
 import { PartyWinKPIs } from './PartyWinKPIs';
 import { MapLegend } from './MapLegend';
 import { ArrowLeft } from 'lucide-react';
@@ -14,6 +13,8 @@ interface DistrictMapProps {
     trends: TrendResult[];
 }
 
+import { useStaticTopoJSON } from '../../services/map';
+
 export const DistrictMap: React.FC<DistrictMapProps> = ({
     districtName,
     onSelectLB,
@@ -22,23 +23,57 @@ export const DistrictMap: React.FC<DistrictMapProps> = ({
     trends
 }) => {
     const [activeTab, setActiveTab] = useState<'grama' | 'block' | 'district'>('grama');
-    const [geoJsonData, setGeoJsonData] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [hoveredLB, setHoveredLB] = useState<string | null>(null);
 
     // Filters
     const [showMuni, setShowMuni] = useState(true);
     const [showCorp, setShowCorp] = useState(true);
 
+    // Fetch Map Data (Cached)
+    const { data: rawGeoJsonData, isLoading: loading, error: mapError } = useStaticTopoJSON(`district_maps/${districtName}_${activeTab}.json`);
+
+    // Process & Style Data
+    const styledData = React.useMemo(() => {
+        if (!rawGeoJsonData) return null;
+
+        // Inject style properties based on trends
+        const processedFeatures = rawGeoJsonData.features.map((feature: any) => {
+            const props = feature.properties;
+            const code = props.SEC_Kerala_code || props.LSG_code || props.LGD_Code;
+
+            const trend = trends.find(t => t.LB_Code === code);
+            let color = '#94a3b8'; // Default slate
+
+            if (trend) {
+                switch (trend.Leading_Front) {
+                    case 'LDF': color = '#ef4444'; break;
+                    case 'UDF': color = '#2768F5'; break;
+                    case 'NDA': color = '#f97316'; break;
+                    case 'Hung': color = '#64748b'; break;
+                    case 'IND': color = '#94a3b8'; break;
+                }
+            }
+
+            return {
+                ...feature,
+                properties: {
+                    ...props,
+                    _fillColor: color
+                }
+            };
+        });
+
+        return { ...rawGeoJsonData, features: processedFeatures };
+    }, [rawGeoJsonData, trends]);
+
     const filteredData = React.useMemo(() => {
-        if (!geoJsonData) return null;
+        if (!styledData) return null;
 
-        // If filters are all on, return original
-        if (showMuni && showCorp) return geoJsonData;
+        // If filters are all on, return styled
+        if (showMuni && showCorp) return styledData;
 
-        // Clone to avoid mutating original source if re-used
-        const features = (geoJsonData.features || []).filter((f: any) => {
+        // Clone to avoid mutating
+        const features = (styledData.features || []).filter((f: any) => {
             const type = f.properties.Lsgd_Type || f.properties.lsgd_type || f.properties.LB_Type;
 
             if (!type) return true; // Keep if unknown
@@ -51,68 +86,10 @@ export const DistrictMap: React.FC<DistrictMapProps> = ({
             return true;
         });
 
-        return { ...geoJsonData, features };
-    }, [geoJsonData, showMuni, showCorp]);
+        return { ...styledData, features };
+    }, [styledData, showMuni, showCorp]);
 
-    useEffect(() => {
-        const loadMap = async () => {
-            setLoading(true);
-            setError(null);
-            setGeoJsonData(null); // Clear previous map
-            try {
-                const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
-                const path = `${baseUrl}data/topojson/Kerala/district_maps/${districtName}_${activeTab}.json`;
-
-                const response = await fetch(path);
-                if (!response.ok) throw new Error(`${activeTab} map data not found`);
-
-                let data = await response.json();
-
-                // Convert TopoJSON if needed (District maps usually are TopoJSON)
-                if (data.type === 'Topology') {
-                    const objectName = Object.keys(data.objects)[0];
-                    if (objectName) {
-                        data = feature(data, data.objects[objectName]);
-                    }
-                }
-
-                // Inject style properties based on trends
-                const processedFeatures = data.features.map((feature: any) => {
-                    const props = feature.properties;
-                    const code = props.SEC_Kerala_code || props.LSG_code || props.LGD_Code;
-
-                    const trend = trends.find(t => t.LB_Code === code);
-                    let color = '#94a3b8'; // Default slate
-
-                    if (trend) {
-                        switch (trend.Leading_Front) {
-                            case 'LDF': color = '#ef4444'; break;
-                            case 'UDF': color = '#2768F5'; break;
-                            case 'NDA': color = '#f97316'; break;
-                            case 'Hung': color = '#64748b'; break;
-                            case 'IND': color = '#94a3b8'; break;
-                        }
-                    }
-
-                    return {
-                        ...feature,
-                        properties: {
-                            ...props,
-                            _fillColor: color
-                        }
-                    };
-                });
-
-                setGeoJsonData({ ...data, features: processedFeatures });
-            } catch (err) {
-                console.error(err);
-                setError(`Failed to load ${activeTab} map for ${districtName}`);
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadMap();
-    }, [districtName, activeTab, trends]);
+    const error = mapError ? `Failed to load ${activeTab} map for ${districtName}` : null;
 
     const handleFeatureClick = (feature: any) => {
         const props = feature.properties;

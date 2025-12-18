@@ -79,36 +79,35 @@ export const useMap = (file: string, trends: Trend[]) =>
   useQuery({
     queryKey: ["map", file],
     queryFn: () => loadMap(file, trends),
+    staleTime: Infinity
   });
 
-const BASE_URL = import.meta.env.BASE_URL;
 
-const fetchGeoJSONByCode = async (
-  district: string,
-  code: string,
-) => {
-  if (district && code) {
-    // Ensure district title case
-    const titleCaseDistrict = district.charAt(0).toUpperCase() + district.slice(1).toLowerCase();
-    // Fix common spelling issues if any - strictly matching directory names
-    const finalDistrict = titleCaseDistrict === 'Thiruvanathapuram' ? 'Thiruvananthapuram' : titleCaseDistrict;
 
-    const url = `${BASE_URL}data/geojson/Kerala/districts/${finalDistrict}/${code}.json`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("GeoJSON not found");
-    return await response.json();
+
+// Hook to fetch raw TopoJSON/GeoJSON without styling injection (styling done in component)
+const fetchStaticMap = async (file: string) => {
+  const baseUrl = import.meta.env.BASE_URL.endsWith("/")
+    ? import.meta.env.BASE_URL
+    : `${import.meta.env.BASE_URL}/`;
+  const path = `${baseUrl}data/topojson/Kerala/${file}`;
+  const response = await fetch(path);
+
+  if (!response.ok) throw new Error("Map data not found");
+
+  let data = await response.json();
+  if (data.type === "Topology") {
+    const objectName = Object.keys(data.objects)[0];
+    if (objectName) {
+      data = feature(data, data.objects[objectName]);
+    }
   }
+  return data;
 };
 
-export const useGeoJSONMap = (
-  district: string | undefined,
-  _type: string | undefined,
-  _name: string | undefined,
-  code: string | undefined
-) => {
-  return useQuery({
-    queryKey: ["geomap", district, code],
-    queryFn: () => fetchGeoJSONByCode(district!, code!),
-    enabled: !!district && !!code,
+export const useStaticTopoJSON = (file: string) =>
+  useQuery({
+    queryKey: ["static-map", file],
+    queryFn: () => fetchStaticMap(file),
+    staleTime: Infinity,
   });
-};

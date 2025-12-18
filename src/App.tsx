@@ -1,127 +1,75 @@
-import { useEffect, useState } from 'react';
+import { useState, useMemo } from 'react';
 import { DataDashboard } from './components/dashboard/DataDashboard';
 import { MapDashboard } from './components/map/MapDashboard';
 import { DetailPanel } from './components/details/DetailPanel';
 import { DistrictDrillDown } from './components/dashboard/DistrictDrillDown';
-import { fetchLocalBodies, fetchWards, fetchPollingStations, fetchTrendResults, type LocalBody, type Ward, type PollingStation, type TrendResult } from './services/dataService';
+import { type LocalBody } from './services/dataService';
+import { useLocalBody, useWards, usePollingStations, useTrendResults } from './services/data';
 import { Search, LayoutGrid, Map as MapIcon } from 'lucide-react';
 import Logo from "./assets/logo.png";
 import { DisclaimerModal } from './components/common/DisclaimerModal';
-import { useGeoJSONMap } from './services/map';
+
 
 function App() {
-    const [localBodies, setLocalBodies] = useState<LocalBody[]>([]);
-    const [wards, setWards] = useState<Ward[]>([]);
-    const [pollingStations, setPollingStations] = useState<PollingStation[]>([]);
-    const [trendResults, setTrendResults] = useState<TrendResult[]>([]);
-    const [counts, setCounts] = useState<{
-        corporations: number;
-        municipalities: number;
-        gramaPanchayats: number;
-        blockPanchayats: number;
-        districtPanchayats: number;
-        voters: number;
-        pollingStations: number;
-        totalWards: number;
-    }>({
-        corporations: 0,
-        municipalities: 0,
-        gramaPanchayats: 0,
-        blockPanchayats: 0,
-        districtPanchayats: 0,
-        voters: 0,
-        pollingStations: 0,
-        totalWards: 0,
-    });
+    // Unified Data Fetching with Caching
+    const { data: localBodies = [], isLoading: lbLoading } = useLocalBody();
+    const { data: wards = [], isLoading: wardsLoading } = useWards();
+    const { data: pollingStations = [], isLoading: psLoading } = usePollingStations();
+    const { data: trendResults = [], isLoading: trendsLoading } = useTrendResults();
+
     const [selectedKPI, setSelectedKPI] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
     const [selectedLocalBody, setSelectedLocalBody] = useState<LocalBody | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [drillDownData, setDrillDownData] = useState<{ district: string; type: string } | null>(null);
     const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'data' | 'map'>('map');
 
-    const [district, setDistrict] = useState<string>();
-    const [type, setType] = useState<string>();
-    const [name, setName] = useState<string>();
 
-    useEffect(() => {
-        const loadData = async () => {
-            try {
-                const [lbs, fetchedWards, stations, trends] = await Promise.all([
-                    fetchLocalBodies(),
-                    fetchWards(),
-                    fetchPollingStations(),
-                    fetchTrendResults()
-                ]);
 
-                setLocalBodies(lbs);
-                setWards(fetchedWards);
-                setPollingStations(stations);
-                setTrendResults(trends);
+    const loading = lbLoading || wardsLoading || psLoading || trendsLoading;
 
-                const lbTypeMap = new Map(lbs.map(lb => [lb.lb_code, lb.lb_type]));
-
-                const validTypes = ['Municipal Corporation', 'Municipality', 'Grama Panchayat'];
-
-                const validWards = fetchedWards.filter(w => {
-                    const type = lbTypeMap.get(w.lb_code);
-                    return type && validTypes.includes(type);
-                });
-
-                const validStations = stations.filter(ps => {
-                    const type = lbTypeMap.get(ps.lb_code);
-                    return type && validTypes.includes(type);
-                });
-
-                const newCounts = {
-                    corporations: lbs.filter(lb => lb.lb_type === 'Municipal Corporation').length,
-                    municipalities: lbs.filter(lb => lb.lb_type === 'Municipality').length,
-                    gramaPanchayats: lbs.filter(lb => lb.lb_type === 'Grama Panchayat').length,
-                    blockPanchayats: lbs.filter(lb => lb.lb_type === 'Block Panchayat').length,
-                    districtPanchayats: lbs.filter(lb => lb.lb_type === 'District Panchayat').length,
-                    voters: validWards.reduce((acc, curr) => acc + curr.total_voters, 0),
-                    pollingStations: validStations.length,
-                    totalWards: lbs.reduce((acc, curr) => acc + curr.total_wards, 0),
-                };
-                setCounts(newCounts);
-
-            } catch (error) {
-                console.error('Error loading data:', error);
-            } finally {
-                setLoading(false);
-            }
+    // Derived State for KPI Counts
+    // We use useMemo to calculate this whenever the underlying data changes
+    const counts = useMemo(() => {
+        if (loading) return {
+            corporations: 0, municipalities: 0, gramaPanchayats: 0,
+            blockPanchayats: 0, districtPanchayats: 0, voters: 0,
+            pollingStations: 0, totalWards: 0
         };
 
-        loadData();
-    }, []);
+        const lbTypeMap = new Map(localBodies.map(lb => [lb.lb_code, lb.lb_type]));
+        const validTypes = ['Municipal Corporation', 'Municipality', 'Grama Panchayat'];
+
+        const validWards = wards.filter(w => {
+            const type = lbTypeMap.get(w.lb_code);
+            return type && validTypes.includes(type);
+        });
+
+        const validStations = pollingStations.filter(ps => {
+            const type = lbTypeMap.get(ps.lb_code);
+            return type && validTypes.includes(type);
+        });
+
+        return {
+            corporations: localBodies.filter(lb => lb.lb_type === 'Municipal Corporation').length,
+            municipalities: localBodies.filter(lb => lb.lb_type === 'Municipality').length,
+            gramaPanchayats: localBodies.filter(lb => lb.lb_type === 'Grama Panchayat').length,
+            blockPanchayats: localBodies.filter(lb => lb.lb_type === 'Block Panchayat').length,
+            districtPanchayats: localBodies.filter(lb => lb.lb_type === 'District Panchayat').length,
+            voters: validWards.reduce((acc, curr) => acc + curr.total_voters, 0),
+            pollingStations: validStations.length,
+            totalWards: localBodies.reduce((acc, curr) => acc + curr.total_wards, 0),
+        };
+    }, [localBodies, wards, pollingStations, loading]);
 
     const handleSelectLocalBody = async (lb: LocalBody) => {
         setSelectedLocalBody(lb);
         setSearchTerm('');
 
-        // Always fetch GeoJSON for the selected local body (used in DetailPanel)
-        const fixDistrictName = (name: string) => {
-            const titleCase = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-            // Directory is 'Thiruvananthapuram', so we ensure we use that.
-            // If input is 'Thiruvanathapuram' (missing n), fix it? 
-            // Usually data comes as 'Thiruvananthapuram'.
-            // Just ensure consistency:
-            if (titleCase === 'Thiruvanathapuram') return 'Thiruvananthapuram';
-            return titleCase;
-        };
-
-        const district = fixDistrictName(lb.district_name);
-        // const type = lb.lb_type; 
-        // const name = lb.lb_name_english;
-        // We now rely on lb.lb_code for fetching map
-
-        setDistrict(district);
-        setType(lb.lb_type);
-        setName(lb.lb_name_english);
     };
 
-    const map = useGeoJSONMap(district, type, name, selectedLocalBody?.lb_code);
+    // Unified Data Fetching with Caching
+    // Only SVG map is used now, handled inside components.
 
     const handleClearSelection = async () => {
         // Determine if we should go back to a drill-down view instead of the home dashboard
@@ -378,7 +326,6 @@ function App() {
                             onBack={handleClearSelection}
                             wards={wards}
                             pollingStations={pollingStations}
-                            geoJsonData={map.data}
                             localBodies={localBodies}
                             trendData={trendResults.find(t => t.LB_Code === selectedLocalBody.lb_code)}
                         />

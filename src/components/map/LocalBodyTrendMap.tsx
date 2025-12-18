@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { InteractiveMap } from './InteractiveMap';
+import React, { useState } from 'react';
+import { SVGMap } from './SVGMap';
 import type { TrendResult } from '../../services/dataService';
 import { ArrowLeft } from 'lucide-react';
 
@@ -20,107 +20,15 @@ export const LocalBodyTrendMap: React.FC<LocalBodyTrendMapProps> = ({
     trendData,
     onBack
 }) => {
-    const [geoJsonData, setGeoJsonData] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    // const [geoJsonData, setGeoJsonData] = useState<any>(null); // Removed unused
+    // const [loading, setLoading] = useState(true); // Removed unused
+    // const [error, setError] = useState<string | null>(null); // Removed unused
     const [selectedWard, setSelectedWard] = useState<string | null>(null);
     const [mobileTab, setMobileTab] = useState<'overview' | 'wards'>('overview');
     const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(true);
 
-    useEffect(() => {
-        const loadMap = async () => {
-            setLoading(true);
-            setError(null);
+    // Map loading handled by SVGMap component
 
-            try {
-                const baseUrl = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
-
-                // Direct fetch using SEC Code
-                const path = `${baseUrl}data/geojson/Kerala/districts/${districtName}/${lbCode}.json`;
-
-                const response = await fetch(path);
-                if (!response.ok) throw new Error(`Map data not found for ${lbCode}`);
-
-                const data = await response.json();
-
-                // Process features to inject colors based on Ward Winner
-                if (data.features && trendData) {
-                    const processedFeatures = data.features.map((feature: any) => {
-                        const props = feature.properties;
-                        // Assuming ward number is in properties, e.g. "Ward_No" or match by name?
-                        // Usually GeoJSON from SEC has Ward_No or we can infer it.
-                        // Let's assume standard "Ward_No" from previous context or "ward_no"
-                        // Or "Ward No"
-                        // Determine if this is a Ward feature or the LSG boundary
-                        const wardNoProp = props.Ward_No || props.ward_no || props['Ward No'] || props.WARD_NO || props.Ward;
-
-                        let wardNo = '';
-                        let color = '#e2e8f0'; // Default slate-200 for no data
-
-                        if (wardNoProp) {
-                            wardNo = String(wardNoProp);
-                            const info = trendData.wardInfo?.[wardNo];
-
-                            if (info) {
-                                const winner = info.winner;
-                                // Fallback to leading if available, else top candidate
-                                const topCandidate = info.candidates?.[0];
-                                const isImplicitLead = !winner && !info.leading && topCandidate && topCandidate.votes > 0;
-                                const leader = info.leading || (isImplicitLead ? topCandidate : undefined);
-
-                                if (winner) {
-                                    switch (winner.group) {
-                                        case 'LDF': color = '#ef4444'; break;
-                                        case 'UDF': color = '#2768F5'; break; //dark blue instead of green
-                                        case 'NDA': color = '#f97316'; break;
-                                        default: color = '#64748b'; break; // Others
-                                    }
-                                } else if (leader) {
-                                    // Lighter colors for leading
-                                    switch (leader.group) {
-                                        case 'LDF': color = '#fca5a5'; break; // red-300
-                                        case 'UDF': color = '#2768F5'; break; // dark-blue
-                                        case 'NDA': color = '#fdba74'; break; // orange-300
-                                        default: color = '#cbd5e1'; break; // slate-300
-                                    }
-                                }
-                            }
-                        } else {
-                            // Fallback to LSG Leader if no ward info (e.g. LSG boundary map)
-                            switch (trendData.Leading_Front) {
-                                case 'LDF': color = '#ef4444'; break;
-                                case 'UDF': color = '#2768F5'; break;
-                                case 'NDA': color = '#f97316'; break;
-                                case 'Hung': color = '#64748b'; break;
-                                case 'IND': color = '#94a3b8'; break;
-                            }
-                        }
-
-                        return {
-                            ...feature,
-                            properties: {
-                                ...props,
-                                _fillColor: color,
-                                // ensure wardNo is string for matching
-                                _wardNo: wardNo
-                            }
-                        };
-                    });
-                    setGeoJsonData({ ...data, features: processedFeatures });
-                } else {
-                    setGeoJsonData(data);
-                }
-
-            } catch (err: any) {
-                console.error(err);
-                setError(`Could not load map for ${lbName}`);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadMap();
-    }, [lbName, lbCode, districtName, trendData]);
 
     // Helper to get ward color - CURRENTLY UNUSED but kept for reference
     // const getGroupColor = (group: string) => {
@@ -153,26 +61,14 @@ export const LocalBodyTrendMap: React.FC<LocalBodyTrendMapProps> = ({
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
                 {/* 1. Map Section */}
                 <div className={`relative bg-slate-50 lg:h-full lg:flex-1 ${isMobilePanelOpen ? 'h-[40dvh]' : 'h-full'} border-b lg:border-b-0 border-slate-200`}>
-                    {loading && (
-                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/50 backdrop-blur-sm">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                        </div>
-                    )}
-                    {error && (
-                        <div className="absolute inset-0 flex items-center justify-center text-red-500 p-4 text-center">
-                            {error}
-                        </div>
-                    )}
                     <div className="h-full w-full">
-                        <InteractiveMap
-                            geoJsonData={geoJsonData}
-                            interactive={true}
-                            dragging={false}
-                            zoomControl={false}
-                            scrollWheelZoom={false}
-                            doubleClickZoom={false}
-                            touchZoom={false}
-                            padding={[10, 10]}
+                        <SVGMap
+                            url={`${import.meta.env.BASE_URL}data/geojson/Kerala/district_wards/${(districtName === 'Thiruvanathapuram' ? 'Thiruvananthapuram' : districtName)}/${lbCode}.svg`}
+                            trendData={trendData}
+                            onWardClick={(wardNo) => {
+                                setSelectedWard(wardNo);
+                                if (window.innerWidth < 1024) setMobileTab('overview');
+                            }}
                         />
                     </div>
                 </div>
@@ -249,8 +145,10 @@ export const LocalBodyTrendMap: React.FC<LocalBodyTrendMapProps> = ({
 
                                                 // Calculate percent
                                                 const candidates = trendData.wardInfo[selectedWard!].candidates;
+                                                const isUncontested = candidates.length === 1;
                                                 const maxVotes = Math.max(...candidates.map(c => c.votes));
-                                                const percent = maxVotes > 0 ? (cand.votes / maxVotes) * 100 : 0;
+                                                // If uncontested, give full bar even if votes are 0
+                                                const percent = isUncontested ? 100 : (maxVotes > 0 ? (cand.votes / maxVotes) * 100 : 0);
 
                                                 return (
                                                     <div key={idx} className={`p-3 rounded-lg border shadow-sm ${rowClass}`}>
@@ -338,14 +236,20 @@ export const LocalBodyTrendMap: React.FC<LocalBodyTrendMapProps> = ({
                                 const winner = info?.winner;
                                 // Fallback to leading if available, else top candidate
                                 const topCandidate = info?.candidates?.[0];
-                                const isImplicitLead = !winner && !info?.leading && topCandidate && topCandidate.votes > 0;
+                                const secondCandidate = info?.candidates?.[1];
+                                const isUncontested = info?.candidates?.length === 1;
+                                const isHung = !isUncontested && topCandidate && secondCandidate && topCandidate.votes > 0 && topCandidate.votes === secondCandidate.votes;
+
+                                const isImplicitLead = !winner && !info?.leading && topCandidate && (topCandidate.votes > 0 || isUncontested);
                                 const leader = info?.leading || (isImplicitLead ? topCandidate : undefined);
 
                                 const isSelected = selectedWard === wStr;
 
                                 // Color logic
                                 let statusBorder = 'border-l-4 border-l-slate-300';
-                                if (winner) {
+                                if (isHung) {
+                                    statusBorder = 'border-l-4 border-l-purple-600';
+                                } else if (winner) {
                                     statusBorder = winner.group === 'LDF' ? 'border-l-4 border-l-red-500' :
                                         winner.group === 'UDF' ? 'border-l-4 border-l-indigo-500' :
                                             winner.group === 'NDA' ? 'border-l-4 border-l-orange-500' :
@@ -374,23 +278,25 @@ export const LocalBodyTrendMap: React.FC<LocalBodyTrendMapProps> = ({
                                         <div className="flex justify-between items-start">
                                             <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-0.5">Ward {wardNum}</div>
                                             {winner && <span className="text-[10px] bg-slate-100 text-slate-600 px-1 rounded">Won</span>}
-                                            {leader && !winner && <span className="text-[10px] bg-blue-50 text-blue-600 px-1 rounded">Lead</span>}
+                                            {isHung && !winner && <span className="text-[10px] bg-purple-100 text-purple-700 px-1 rounded font-bold">HUNG</span>}
+                                            {isUncontested && !winner && !isHung && <span className="text-[10px] bg-slate-100 text-slate-600 px-1 rounded">Uncontested</span>}
+                                            {leader && !winner && !isUncontested && !isHung && <span className="text-[10px] bg-blue-50 text-blue-600 px-1 rounded">Lead</span>}
                                         </div>
 
                                         <div className="font-medium text-slate-800 text-sm truncate" title={info?.wardName}>
                                             {info?.wardName || 'Unknown Ward'}
                                         </div>
 
-                                        {(winner || leader) ? (
+                                        {(winner || leader || isHung) ? (
                                             <div className="mt-1.5 flex items-center justify-between text-xs">
                                                 <span className="font-semibold text-slate-700 truncate max-w-[100px]">
-                                                    {winner?.name || leader?.name}
+                                                    {isHung ? 'Tie' : (winner?.name || leader?.name)}
                                                 </span>
-                                                <span className={`font-bold ml-2 ${(winner?.group || leader?.group) === 'LDF' ? 'text-red-600' :
+                                                <span className={`font-bold ml-2 ${isHung ? 'text-purple-600' : (winner?.group || leader?.group) === 'LDF' ? 'text-red-600' :
                                                     (winner?.group || leader?.group) === 'UDF' ? 'text-indigo-600' :
                                                         (winner?.group || leader?.group) === 'NDA' ? 'text-orange-600' : 'text-slate-600'
                                                     }`}>
-                                                    {(winner?.group || leader?.group)}
+                                                    {isHung ? `${topCandidate?.votes} v` : (winner?.group || leader?.group)}
                                                 </span>
                                             </div>
                                         ) : (
