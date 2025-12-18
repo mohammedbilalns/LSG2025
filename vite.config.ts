@@ -4,6 +4,10 @@ import { tanstackRouter } from '@tanstack/router-plugin/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [tanstackRouter(), react()],
+  plugins: [tanstackRouter({
+    target: 'react',
+    autoCodeSplitting: true,
+
+  }), react()],
   base: '/LSG2025/', // Set base URL for GitHub Pages
 })
