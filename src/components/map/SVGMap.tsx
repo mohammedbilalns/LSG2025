@@ -63,9 +63,9 @@ export const SVGMap: React.FC<SVGMapProps> = ({ url, trendData, onWardClick, onE
         if (trendData?.wardInfo) {
             Object.values(trendData.wardInfo).forEach((ward) => {
                 const wardNo = ward.wardNo;
-                const path = container.querySelector<SVGPathElement>(`#ward-${wardNo}`);
+                const paths = container.querySelectorAll<SVGPathElement>(`#ward-${wardNo}`);
 
-                if (path) {
+                if (paths.length > 0) {
                     let color = '#e2e8f0';
                     const winner = ward.winner;
                     const topCandidate = ward.candidates?.[0];
@@ -96,7 +96,10 @@ export const SVGMap: React.FC<SVGMapProps> = ({ url, trendData, onWardClick, onE
                             default: color = '#cbd5e1'; break;
                         }
                     }
-                    path.style.fill = color;
+                    
+                    paths.forEach(path => {
+                        path.style.fill = color;
+                    });
                 }
             });
         }
