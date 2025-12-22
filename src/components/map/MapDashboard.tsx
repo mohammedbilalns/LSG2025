@@ -105,6 +105,7 @@ export const MapDashboard: React.FC<MapDashboardProps> = () => {
               lbName={selectedLB.lb_name_english}
               lbCode={selectedLB.lb_code}
               districtName={selectedDistrict}
+              lbType={selectedLB.lb_type}
               totalWards={selectedLB.total_wards}
               trendData={allTrends.data.find(
                 (t) => t.LB_Code === selectedLB.lb_code,

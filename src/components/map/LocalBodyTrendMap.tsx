@@ -7,6 +7,7 @@ interface LocalBodyTrendMapProps {
     lbName: string;
     lbCode: string;
     districtName: string;
+    lbType: string;
     totalWards: number;
     trendData?: TrendResult;
     onBack: () => void;
@@ -16,6 +17,7 @@ export const LocalBodyTrendMap: React.FC<LocalBodyTrendMapProps> = ({
     lbName,
     lbCode,
     districtName,
+    lbType,
     totalWards,
     trendData,
     onBack
@@ -53,7 +55,7 @@ export const LocalBodyTrendMap: React.FC<LocalBodyTrendMapProps> = ({
                     </button>
                     <div>
                         <h2 className="text-xl font-bold text-slate-800">{lbName}</h2>
-                        <p className="text-sm text-slate-500">{districtName}</p>
+                        <p className="text-sm text-slate-500">{lbType} • {districtName}</p>
                     </div>
                 </div>
             </div>
