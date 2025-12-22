@@ -28,6 +28,8 @@ export interface WardInfo {
     winner?: WardCandidate; // If declared
     leading?: WardCandidate; // If leading
     candidates: WardCandidate[];
+    isTieBreak?: boolean;
+    isHung?: boolean;
 }
 
 export interface WardCandidate {
@@ -260,7 +262,7 @@ export const fetchTrendResults = async (): Promise<TrendResult[]> => {
                         }
                     });
 
-                    // Finalize counts and determine winners based on VOTES
+                    // Finalize counts and determine winners based on VOTES and STATUS
                     lbMap.forEach((trend, _lbCode) => {
                         let calculatedWardsDeclared = 0;
 
@@ -268,35 +270,59 @@ export const fetchTrendResults = async (): Promise<TrendResult[]> => {
                             // Sort candidates by votes (descending)
                             ward.candidates.sort((a, b) => b.votes - a.votes);
 
-                            // Clear any existing status flags
-                            ward.candidates.forEach(c => {
-                                c.status = ''; // or null / '' depending on your schema
-                            });
-
-                            // Highest-vote candidate is the winner (if any)
                             const topCandidate = ward.candidates[0];
-                            const secondCandidate = ward.candidates[1];
+                            const secondCandidate = ward.candidates[1]; // Runner up
 
-                            if (topCandidate && topCandidate.votes > 0) {
-                                // Check for Tie
-                                if (secondCandidate && secondCandidate.votes === topCandidate.votes) {
-                                    // It's a tie
-                                    trend.Tie_Seats++;
-                                    // No one wins, effectively. 'status' remains empty or could be 'tie'
-                                    topCandidate.status = 'tie';
-                                    secondCandidate.status = 'tie';
-                                    calculatedWardsDeclared++;
-                                } else {
-                                    // Clear winner
-                                    topCandidate.status = 'won';
-                                    ward.winner = topCandidate;
-                                    calculatedWardsDeclared++;
+                            // 1. Check for Explicit Winner in CSV (User Manual Override)
+                            // A candidate is a winner if their status is explicitly 'won'
+                            const explicitWinners = ward.candidates.filter(c => c.status && c.status.toLowerCase() === 'won');
 
-                                    const group = topCandidate.group;
-                                    if (group === 'LDF') trend.LDF_Seats++;
-                                    else if (group === 'UDF') trend.UDF_Seats++;
-                                    else if (group === 'NDA') trend.NDA_Seats++;
-                                    else trend.IND_Seats++;
+                            if (explicitWinners.length > 0) {
+                                // We have declared winner(s) in CSV
+                                const winner = explicitWinners[0]; // Take the first one if multiple (though unusual for single seat)
+                                ward.winner = winner;
+
+                                // Check if it was a tie break (Winner votes == Runner Up votes)
+                                if (secondCandidate && winner.votes === secondCandidate.votes) {
+                                    (ward as any).isTieBreak = true; // Add flag for UI
+                                }
+
+                                calculatedWardsDeclared++;
+
+                                const group = winner.group;
+                                if (group === 'LDF') trend.LDF_Seats++;
+                                else if (group === 'UDF') trend.UDF_Seats++;
+                                else if (group === 'NDA') trend.NDA_Seats++;
+                                else trend.IND_Seats++;
+
+                            } else {
+                                // 2. No Explicit Winner - Fallback to Vote Logic (Auto-Calculation)
+                                // Clear statuses that might be 'leading' or undefined to ensure clean slate
+                                ward.candidates.forEach(c => {
+                                    if (c.status?.toLowerCase() !== 'won') c.status = '';
+                                });
+
+                                if (topCandidate && topCandidate.votes > 0) {
+                                    // Check for Tie (Strict Tie)
+                                    if (secondCandidate && secondCandidate.votes === topCandidate.votes) {
+                                        // It's a tie and NO explicit winner was marked
+                                        trend.Tie_Seats++;
+                                        topCandidate.status = 'tie';
+                                        secondCandidate.status = 'tie';
+                                        calculatedWardsDeclared++;
+                                        (ward as any).isHung = true;
+                                    } else {
+                                        // Clear winner (Standard Win)
+                                        topCandidate.status = 'won';
+                                        ward.winner = topCandidate;
+                                        calculatedWardsDeclared++;
+
+                                        const group = topCandidate.group;
+                                        if (group === 'LDF') trend.LDF_Seats++;
+                                        else if (group === 'UDF') trend.UDF_Seats++;
+                                        else if (group === 'NDA') trend.NDA_Seats++;
+                                        else trend.IND_Seats++;
+                                    }
                                 }
                             }
                             // If no candidate or all votes are 0, no winner; ward not counted

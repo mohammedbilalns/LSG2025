@@ -20,6 +20,18 @@ export const SVGMap: React.FC<SVGMapProps> = ({ url, trendData, onWardClick, onE
     const containerRef = useRef<HTMLDivElement>(null);
     const [tooltip, setTooltip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null);
 
+    const [tieGradients, setTieGradients] = useState<Set<string>>(new Set());
+
+    // Helper to get color
+    const getPartyColor = (group: string) => {
+        switch (group) {
+            case 'LDF': return '#ef4444'; // Red
+            case 'UDF': return '#2768F5'; // Blue
+            case 'NDA': return '#f97316'; // Orange
+            default: return '#cbd5e1'; // Slate-300
+        }
+    };
+
     const { data: svgContent, isLoading, error } = useQuery({
         queryKey: ['svg-map', url],
         queryFn: () => fetchSVG(url),
@@ -39,7 +51,6 @@ export const SVGMap: React.FC<SVGMapProps> = ({ url, trendData, onWardClick, onE
     const svgMarkup = React.useMemo(() => ({ __html: svgContent || '' }), [svgContent]);
 
     // Refs to access latest state inside stable event listeners
-
     const trendDataRef = useRef(trendData);
 
     useEffect(() => {
@@ -60,49 +71,68 @@ export const SVGMap: React.FC<SVGMapProps> = ({ url, trendData, onWardClick, onE
             (path as SVGPathElement).style.cursor = 'pointer';
         });
 
+        const newTieGradients = new Set<string>();
+
         if (trendData?.wardInfo) {
             Object.values(trendData.wardInfo).forEach((ward) => {
                 const wardNo = ward.wardNo;
                 const paths = container.querySelectorAll<SVGPathElement>(`#ward-${wardNo}`);
 
                 if (paths.length > 0) {
-                    let color = '#e2e8f0';
+                    let color = '#e2e8f0'; // Default
+                    let fillUrl = '';
+
                     const winner = ward.winner;
                     const topCandidate = ward.candidates?.[0];
                     const secondCandidate = ward.candidates?.[1];
                     const isUncontested = ward.candidates?.length === 1;
 
                     // Check for Tie/Hung
-                    const isHung = !isUncontested && topCandidate && secondCandidate && topCandidate.votes > 0 && topCandidate.votes === secondCandidate.votes;
+                    const isHung = ward.isHung || (!isUncontested && topCandidate && secondCandidate && topCandidate.votes > 0 && topCandidate.votes === secondCandidate.votes && !winner);
 
                     // Implicit lead logic: standard lead OR uncontested
                     const isImplicitLead = !winner && !ward.leading && topCandidate && (topCandidate.votes > 0 || isUncontested);
                     const leader = ward.leading || (isImplicitLead ? topCandidate : undefined);
 
                     if (isHung) {
-                        color = '#7e22ce'; // Purple for Hung
+                        // Tie Logic: Mix of two colors
+                        const g1 = topCandidate?.group || 'IND';
+                        const g2 = secondCandidate?.group || 'IND';
+                        const sortedGroups = [g1, g2].sort();
+                        const gradKey = `${sortedGroups[0]}-${sortedGroups[1]}`;
+
+                        fillUrl = `url(#grad-${gradKey})`;
+                        newTieGradients.add(gradKey);
                     } else if (winner) {
-                        switch (winner.group) {
-                            case 'LDF': color = '#ef4444'; break;
-                            case 'UDF': color = '#2768F5'; break;
-                            case 'NDA': color = '#f97316'; break;
-                            default: color = '#64748b'; break;
-                        }
+                        color = getPartyColor(winner.group);
                     } else if (leader) {
+                        // Lighter versions for leads
                         switch (leader.group) {
                             case 'LDF': color = '#fca5a5'; break;
-                            case 'UDF': color = '#93c5fd'; break; // lighter blue
+                            case 'UDF': color = '#93c5fd'; break;
                             case 'NDA': color = '#fdba74'; break;
                             default: color = '#cbd5e1'; break;
                         }
                     }
-                    
+
                     paths.forEach(path => {
-                        path.style.fill = color;
+                        if (fillUrl) {
+                            path.style.fill = fillUrl;
+                        } else {
+                            path.style.fill = color;
+                        }
                     });
                 }
             });
         }
+
+        // Update gradients if changed
+        setTieGradients(prev => {
+            if (prev.size !== newTieGradients.size) return newTieGradients;
+            for (let item of newTieGradients) if (!prev.has(item)) return newTieGradients;
+            return prev;
+        });
+
     }, [svgContent, trendData]);
 
     // Event Handlers
@@ -123,7 +153,7 @@ export const SVGMap: React.FC<SVGMapProps> = ({ url, trendData, onWardClick, onE
                         const isUncontested = info.candidates?.length === 1;
                         const topCandidate = info.candidates?.[0];
                         const secondCandidate = info.candidates?.[1];
-                        const isHung = !isUncontested && topCandidate && secondCandidate && topCandidate.votes > 0 && topCandidate.votes === secondCandidate.votes;
+                        const isHung = !isUncontested && topCandidate && secondCandidate && topCandidate.votes > 0 && topCandidate.votes === secondCandidate.votes && !info.winner;
 
                         setTooltip({
                             x: e.clientX,
@@ -135,7 +165,10 @@ export const SVGMap: React.FC<SVGMapProps> = ({ url, trendData, onWardClick, onE
                                         <div className="text-purple-700 font-bold">
                                             HUNG / TIE ({topCandidate?.votes} votes)
                                             <div className="text-[10px] font-normal text-slate-600">
-                                                {topCandidate?.name} vs {secondCandidate?.name}
+                                                {topCandidate?.name} ({topCandidate?.group})
+                                            </div>
+                                            <div className="text-[10px] font-normal text-slate-600">
+                                                vs {secondCandidate?.name} ({secondCandidate?.group})
                                             </div>
                                         </div>
                                     ) : info.winner ? (
@@ -185,6 +218,21 @@ export const SVGMap: React.FC<SVGMapProps> = ({ url, trendData, onWardClick, onE
 
     return (
         <div className="relative w-full h-full bg-slate-100 flex items-center justify-center p-4 overflow-hidden">
+            {/* Dynamic Gradients for Ties */}
+            <svg height="0" width="0" style={{ position: 'absolute' }}>
+                <defs>
+                    {Array.from(tieGradients).map(key => {
+                        const [g1, g2] = key.split('-');
+                        return (
+                            <linearGradient key={key} id={`grad-${key}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="50%" stopColor={getPartyColor(g1)} />
+                                <stop offset="50%" stopColor={getPartyColor(g2)} />
+                            </linearGradient>
+                        );
+                    })}
+                </defs>
+            </svg>
+
             {/* Force SVG styles via CSS to avoid JS flicker */}
             <style>{`
                 .svg-container svg {

@@ -238,9 +238,10 @@ export const LocalBodyTrendMap: React.FC<LocalBodyTrendMapProps> = ({
                                 const winner = info?.winner;
                                 // Fallback to leading if available, else top candidate
                                 const topCandidate = info?.candidates?.[0];
-                                const secondCandidate = info?.candidates?.[1];
+
                                 const isUncontested = info?.candidates?.length === 1;
-                                const isHung = !isUncontested && topCandidate && secondCandidate && topCandidate.votes > 0 && topCandidate.votes === secondCandidate.votes;
+                                const isHung = info?.isHung;
+                                const isTieBreak = info?.isTieBreak;
 
                                 const isImplicitLead = !winner && !info?.leading && topCandidate && (topCandidate.votes > 0 || isUncontested);
                                 const leader = info?.leading || (isImplicitLead ? topCandidate : undefined);
@@ -279,7 +280,8 @@ export const LocalBodyTrendMap: React.FC<LocalBodyTrendMapProps> = ({
                                     >
                                         <div className="flex justify-between items-start">
                                             <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-0.5">Ward {wardNum}</div>
-                                            {winner && <span className="text-[10px] bg-slate-100 text-slate-600 px-1 rounded">Won</span>}
+                                            {isTieBreak && winner && <span className="text-[10px] bg-amber-100 text-amber-700 px-1 rounded font-bold border border-amber-200">Won (Tie)</span>}
+                                            {!isTieBreak && winner && <span className="text-[10px] bg-slate-100 text-slate-600 px-1 rounded">Won</span>}
                                             {isHung && !winner && <span className="text-[10px] bg-purple-100 text-purple-700 px-1 rounded font-bold">HUNG</span>}
                                             {isUncontested && !winner && !isHung && <span className="text-[10px] bg-slate-100 text-slate-600 px-1 rounded">Uncontested</span>}
                                             {leader && !winner && !isUncontested && !isHung && <span className="text-[10px] bg-blue-50 text-blue-600 px-1 rounded">Lead</span>}

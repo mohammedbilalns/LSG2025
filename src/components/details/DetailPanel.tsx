@@ -215,9 +215,10 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ localBody, onBack, war
 
                                         // Logic copied from WardDetailModal for consistency
                                         const topCandidate = trendWard?.candidates?.[0];
-                                        const secondCandidate = trendWard?.candidates?.[1];
+
                                         const isUncontested = trendWard?.candidates?.length === 1;
-                                        const isHung = !isUncontested && topCandidate && secondCandidate && topCandidate.votes > 0 && topCandidate.votes === secondCandidate.votes;
+                                        const isHung = trendWard?.isHung;
+                                        const isTieBreak = trendWard?.isTieBreak;
 
                                         const isImplicitLead = !winner && !trendWard?.leading && topCandidate && (topCandidate.votes > 0 || isUncontested);
                                         const leader = trendWard?.leading || (isImplicitLead ? topCandidate : undefined);
@@ -236,7 +237,12 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ localBody, onBack, war
                                                 winner.group === 'UDF' ? 'border-l-4 border-l-indigo-500' :
                                                     winner.group === 'NDA' ? 'border-l-4 border-l-orange-500' :
                                                         'border-l-4 border-l-slate-500';
-                                            statusBadge = <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold">WON</span>;
+
+                                            if (isTieBreak) {
+                                                statusBadge = <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold border border-amber-200">WON (TIE)</span>;
+                                            } else {
+                                                statusBadge = <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold">WON</span>;
+                                            }
                                         } else if (leader) {
                                             borderColor = leader.group === 'LDF' ? 'border-l-4 border-l-red-400' :
                                                 leader.group === 'UDF' ? 'border-l-4 border-l-indigo-400' :
