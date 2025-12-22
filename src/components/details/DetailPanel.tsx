@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import type { LocalBody, Ward, PollingStation, TrendResult } from '../../services/dataService';
 import { ArrowLeft, MapPin, Vote, Users, Building2, Trophy } from 'lucide-react';
 import { SVGMap } from '../map/SVGMap';
+import { WardDetailModal } from './WardDetailModal';
 
 interface DetailPanelProps {
     localBody: LocalBody;
@@ -12,6 +14,9 @@ interface DetailPanelProps {
 }
 
 export const DetailPanel: React.FC<DetailPanelProps> = ({ localBody, onBack, wards, pollingStations, localBodies, trendData }) => {
+
+    const [selectedWard, setSelectedWard] = useState<string | null>(null);
+
     // SVG Map handles coloring internally now.
     // Preserving logic structure if we ever need to pass raw GeoJSON again, but cleaning up heavy processing.
 
@@ -58,7 +63,9 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ localBody, onBack, war
                 <div className="h-64 w-full bg-slate-200 relative">
                     <SVGMap
                         url={`${import.meta.env.BASE_URL}data/geojson/Kerala/district_wards/${(localBody.district_name === 'Thiruvanathapuram' ? 'Thiruvananthapuram' : localBody.district_name)}/${localBody.lb_code}.svg`}
+
                         trendData={trendData}
+                        onWardClick={(wardNo) => setSelectedWard(wardNo)}
                     />
                 </div>
 
@@ -199,71 +206,108 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ localBody, onBack, war
                             <Users size={20} className="text-slate-400" />
                             Ward Breakdown
                         </h3>
-                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                            <div className="max-h-96 overflow-y-auto custom-scrollbar">
-                                <table className="w-full text-left border-collapse">
-                                    <thead className="bg-slate-50 sticky top-0 z-10">
-                                        <tr>
-                                            <th className="py-3 px-4 font-semibold text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">Ward No</th>
-                                            <th className="py-3 px-4 font-semibold text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">Name</th>
-                                            {trendData && <th className="py-3 px-4 font-semibold text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200">Winner</th>}
-                                            <th className="py-3 px-4 font-semibold text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200 text-right">Voters</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {lbWards.map((ward) => {
-                                            const trendWard = trendData?.wardInfo?.[String(ward.ward_no)];
-                                            const winner = trendWard?.winner;
-                                            const leader = trendWard?.leading;
+                        <div className="bg-slate-50 rounded-2xl border border-slate-200 shadow-inner p-4 overflow-hidden">
+                            <div className="max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {lbWards.map((ward) => {
+                                        const trendWard = trendData?.wardInfo?.[String(ward.ward_no)];
+                                        const winner = trendWard?.winner;
 
-                                            // Fallback to top candidate if no official winner/leader but candidates exist
-                                            const topCandidate = trendWard?.candidates?.[0];
-                                            const displayResult = winner || leader || topCandidate;
+                                        // Logic copied from WardDetailModal for consistency
+                                        const topCandidate = trendWard?.candidates?.[0];
+                                        const secondCandidate = trendWard?.candidates?.[1];
+                                        const isUncontested = trendWard?.candidates?.length === 1;
+                                        const isHung = !isUncontested && topCandidate && secondCandidate && topCandidate.votes > 0 && topCandidate.votes === secondCandidate.votes;
 
-                                            // Determine if this is an implicit spread (just top candidate) or explicit
-                                            const isImplicitLead = !winner && !leader && topCandidate && topCandidate.votes > 0;
+                                        const isImplicitLead = !winner && !trendWard?.leading && topCandidate && (topCandidate.votes > 0 || isUncontested);
+                                        const leader = trendWard?.leading || (isImplicitLead ? topCandidate : undefined);
 
-                                            // Determine text color
-                                            const groupColor =
-                                                displayResult?.group === 'LDF' ? 'text-red-600' :
-                                                    displayResult?.group === 'UDF' ? 'text-indigo-600' :
-                                                        displayResult?.group === 'NDA' ? 'text-orange-600' :
-                                                            displayResult?.group === 'Others' ? 'text-slate-600' :
-                                                                'text-slate-500';
+                                        const displayResult = isHung ? null : (winner || leader || topCandidate);
 
-                                            return (
-                                                <tr key={ward.ward_code} className="hover:bg-slate-50 transition-colors">
-                                                    <td className="py-3 px-4 text-slate-500 font-medium text-sm">{ward.ward_no}</td>
-                                                    <td className="py-3 px-4 text-slate-900 font-medium text-sm">{ward.ward_name_english}</td>
-                                                    {trendData && (
-                                                        <td className="py-3 px-4">
-                                                            {displayResult ? (
-                                                                <div className="flex flex-col">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className={`font-bold text-sm ${groupColor}`}>{displayResult.name}</span>
-                                                                        {winner && <span className="text-[10px] bg-yellow-100 text-yellow-700 px-1 rounded-sm font-bold">WON</span>}
-                                                                        {(leader || isImplicitLead) && <span className="text-[10px] bg-blue-50 text-blue-600 px-1 rounded-sm font-bold">LEAD</span>}
-                                                                    </div>
-                                                                    <span className="text-xs text-slate-500">
-                                                                        {displayResult.party} {displayResult.votes > 0 ? `(${displayResult.votes})` : ''}
-                                                                    </span>
-                                                                </div>
-                                                            ) : (
-                                                                <span className="text-xs text-slate-400 italic">No result</span>
-                                                            )}
-                                                        </td>
-                                                    )}
-                                                    <td className="py-3 px-4 text-slate-600 text-sm text-right font-mono">{ward.total_voters.toLocaleString()}</td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                                        // Determine styling based on status
+                                        let borderColor = 'border-l-4 border-l-slate-300';
+                                        let statusBadge = null;
+
+                                        if (isHung) {
+                                            borderColor = 'border-l-4 border-l-purple-600';
+                                            statusBadge = <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-bold">HUNG</span>;
+                                        } else if (winner) {
+                                            borderColor = winner.group === 'LDF' ? 'border-l-4 border-l-red-500' :
+                                                winner.group === 'UDF' ? 'border-l-4 border-l-indigo-500' :
+                                                    winner.group === 'NDA' ? 'border-l-4 border-l-orange-500' :
+                                                        'border-l-4 border-l-slate-500';
+                                            statusBadge = <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold">WON</span>;
+                                        } else if (leader) {
+                                            borderColor = leader.group === 'LDF' ? 'border-l-4 border-l-red-400' :
+                                                leader.group === 'UDF' ? 'border-l-4 border-l-indigo-400' :
+                                                    leader.group === 'NDA' ? 'border-l-4 border-l-orange-400' :
+                                                        'border-l-4 border-l-slate-400';
+                                            statusBadge = <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-bold">LEAD</span>;
+                                        }
+
+                                        // Text Color for Party/Group
+                                        const groupColor =
+                                            displayResult?.group === 'LDF' ? 'text-red-700' :
+                                                displayResult?.group === 'UDF' ? 'text-indigo-700' :
+                                                    displayResult?.group === 'NDA' ? 'text-orange-700' :
+                                                        'text-slate-600';
+
+                                        return (
+                                            <div
+                                                key={ward.ward_code}
+                                                onClick={() => setSelectedWard(String(ward.ward_no))}
+                                                className={`bg-white p-3 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group ${borderColor}`}
+                                            >
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div>
+                                                        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ward {ward.ward_no}</div>
+                                                        <div className="font-semibold text-slate-900 text-sm line-clamp-1" title={ward.ward_name_english}>{ward.ward_name_english}</div>
+                                                    </div>
+                                                    {statusBadge}
+                                                </div>
+
+                                                {trendData ? (
+                                                    <div className="bg-slate-50 rounded p-2 text-xs">
+                                                        {isHung ? (
+                                                            <div className="flex items-center justify-between font-bold text-purple-700">
+                                                                <span>TIED</span>
+                                                            </div>
+                                                        ) : displayResult ? (
+                                                            <div className="flex items-center justify-between">
+                                                                <span className={`font-bold truncate w-full ${groupColor}`}>{displayResult.name}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-slate-400 italic text-center text-[10px]">No Result</div>
+                                                        )}
+                                                        {(!isHung && displayResult) && (
+                                                            <div className="flex justify-between mt-1 text-[10px] text-slate-500">
+                                                                <span>{displayResult.party}</span>
+                                                                <span>{displayResult.group}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="mt-2 text-right">
+                                                        <span className="text-xs text-slate-400">Voters: </span>
+                                                        <span className="text-xs font-mono font-medium text-slate-600">{ward.total_voters.toLocaleString()}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <WardDetailModal
+                isOpen={!!selectedWard}
+                onClose={() => setSelectedWard(null)}
+                wardNo={selectedWard}
+                trendData={trendData}
+            />
         </div>
     );
 };
