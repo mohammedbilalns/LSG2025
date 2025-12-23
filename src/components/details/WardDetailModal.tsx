@@ -66,6 +66,18 @@ export const WardDetailModal: React.FC<WardDetailModalProps> = ({ isOpen, onClos
                                     <div className="text-xs text-purple-600 mt-0.5">Equal votes for top candidates</div>
                                 </div>
                             </div>
+                        ) : (isUncontested && winner) ? (
+                            <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 flex items-center gap-3">
+                                <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
+                                    <Trophy size={20} />
+                                </div>
+                                <div>
+                                    <div className="font-bold text-purple-700">ELECTED UNOPPOSED</div>
+                                    <div className="text-xs text-purple-600 mt-0.5">
+                                        Winner: {winner.name} ({winner.group})
+                                    </div>
+                                </div>
+                            </div>
                         ) : winner ? (
                             <div className={`
                                 border rounded-xl p-4 flex items-center gap-3
@@ -92,7 +104,7 @@ export const WardDetailModal: React.FC<WardDetailModalProps> = ({ isOpen, onClos
                                         WINNER: {winner.name} ({winner.group})
                                     </div>
                                     <div className="text-xs opacity-80 mt-0.5">
-                                        Won with {winner.votes.toLocaleString()} votes
+                                        {secondCandidate ? `Won by margin of ${(winner.votes - secondCandidate.votes).toLocaleString()} votes` : `Won with ${winner.votes.toLocaleString()} votes`}
                                     </div>
                                 </div>
                             </div>

@@ -295,6 +295,20 @@ export const fetchTrendResults = async (): Promise<TrendResult[]> => {
                                 else if (group === 'NDA') trend.NDA_Seats++;
                                 else trend.IND_Seats++;
 
+                            } else if (ward.candidates.length === 1) {
+                                // 1.5 Uncontested Winner (Single Candidate)
+                                const winner = ward.candidates[0];
+                                winner.status = 'won';
+                                ward.winner = winner;
+                                
+                                calculatedWardsDeclared++;
+                                
+                                const group = winner.group;
+                                if (group === 'LDF') trend.LDF_Seats++;
+                                else if (group === 'UDF') trend.UDF_Seats++;
+                                else if (group === 'NDA') trend.NDA_Seats++;
+                                else trend.IND_Seats++;
+                                
                             } else {
                                 // 2. No Explicit Winner - Fallback to Vote Logic (Auto-Calculation)
                                 // Clear statuses that might be 'leading' or undefined to ensure clean slate
