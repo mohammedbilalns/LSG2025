@@ -1,37 +1,27 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { DataDashboard } from '../../components/dashboard/DataDashboard';
-import { useLocalBody, useWards, usePollingStations } from '../../services/data';
+import { localBodyQueryOptions, wardsQueryOptions, pollingStationsQueryOptions } from '../../services/data';
 import { useState, useMemo } from 'react';
 
 export const Route = createFileRoute('/data/')({
     component: DataRoute,
+    loader: ({ context: { queryClient } }) => {
+        return Promise.all([
+            queryClient.ensureQueryData(localBodyQueryOptions),
+            queryClient.ensureQueryData(wardsQueryOptions),
+            queryClient.ensureQueryData(pollingStationsQueryOptions),
+        ]);
+    },
 });
 
 function DataRoute() {
     const navigate = useNavigate();
-    const { data: localBodies = [], isLoading: lbLoading } = useLocalBody();
-    const { data: wards = [], isLoading: wardsLoading } = useWards();
-    const { data: pollingStations = [], isLoading: psLoading } =
-        usePollingStations();
+    const [localBodies, wards, pollingStations] = Route.useLoaderData();
 
     const [selectedKPI, setSelectedKPI] = useState<string | null>(null);
 
-    const loading = lbLoading || wardsLoading || psLoading;
-
     // Derived State for KPI Counts 
     const counts = useMemo(() => {
-        if (loading)
-            return {
-                corporations: 0,
-                municipalities: 0,
-                gramaPanchayats: 0,
-                blockPanchayats: 0,
-                districtPanchayats: 0,
-                voters: 0,
-                pollingStations: 0,
-                totalWards: 0,
-            };
-
         const lbTypeMap = new Map(localBodies.map((lb) => [lb.lb_code, lb.lb_type]));
         const validTypes = [
             'Municipal Corporation',
@@ -68,7 +58,7 @@ function DataRoute() {
             pollingStations: validStations.length,
             totalWards: localBodies.reduce((acc, curr) => acc + curr.total_wards, 0),
         };
-    }, [localBodies, wards, pollingStations, loading]);
+    }, [localBodies, wards, pollingStations]);
 
     const handleStatewideDrillDown = (kpiId: string) => {
         let type = '';
@@ -97,13 +87,7 @@ function DataRoute() {
     };
 
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
-        )
-    }
+
 
     return (
         <DataDashboard

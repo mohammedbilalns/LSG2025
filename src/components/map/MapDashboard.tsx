@@ -8,9 +8,11 @@ const StateMap = React.lazy(() =>
 const LocalBodyTrendMap = React.lazy(() =>
   import("./LocalBodyTrendMap").then((m) => ({ default: m.LocalBodyTrendMap })),
 );
-import { useLocalBody, useTrendResults } from "../../services/data";
+import type { LocalBody, TrendResult } from "../../services/dataService";
 
 interface MapDashboardProps {
+  localBodies: LocalBody[];
+  trendResults: TrendResult[];
   districtName?: string;
   lbCode?: string;
   onSelectDistrict?: (districtName: string) => void;
@@ -26,6 +28,8 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
   onSelectLB,
   onBackToDistrict,
   onBackToState,
+  localBodies,
+  trendResults,
 }) => {
   // Derived view state:
   // If lbCode -> 'map' (Specific LB View)
@@ -34,9 +38,6 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
 
   const view = lbCode ? "map" : districtName ? "lbs" : "districts";
   const selectedDistrict = districtName || null;
-  // resolve the full LB object from the code if in 'map' view
-  const { data: localBodies = [], isLoading: lbLoading } = useLocalBody();
-  const { data: trendResults = [], isLoading: trendsLoading } = useTrendResults();
 
   const selectedLB = lbCode
     ? localBodies.find((lb) => lb.lb_code === lbCode) || null
@@ -54,16 +55,6 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
   const handleSelectLBByCode = (code: string) => {
     onSelectLB?.(code);
   };
-
-  const loading = lbLoading || trendsLoading;
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-140px)] bg-white rounded-2xl shadow-sm border border-slate-200">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
 
   const noop = () => { };
 
@@ -101,7 +92,7 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
             lbName={selectedLB.lb_name_english}
             lbCode={selectedLB.lb_code}
             districtName={selectedDistrict}
-            lbType={selectedLB.lb_type} 
+            lbType={selectedLB.lb_type}
             totalWards={selectedLB.total_wards}
             trendData={trendResults.find(
               (t) => t.LB_Code === selectedLB.lb_code,

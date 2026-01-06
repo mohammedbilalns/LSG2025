@@ -1,24 +1,33 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, useNavigate, notFound } from '@tanstack/react-router';
 import { DetailPanel } from '../../components/details/DetailPanel';
-import {
-  useLocalBody,
-  useWards,
-  usePollingStations,
-  useTrendResults,
-} from '../../services/data';
+import { localBodyQueryOptions, wardsQueryOptions, pollingStationsQueryOptions, trendResultsQueryOptions } from '../../services/data';
 
 export const Route = createFileRoute('/details/$lbCode')({
   component: DetailsRoute,
+  loader: async ({ context: { queryClient }, params }) => {
+    const data = await Promise.all([
+      queryClient.ensureQueryData(localBodyQueryOptions),
+      queryClient.ensureQueryData(wardsQueryOptions),
+      queryClient.ensureQueryData(pollingStationsQueryOptions),
+      queryClient.ensureQueryData(trendResultsQueryOptions),
+    ]);
+
+    const [localBodies] = data;
+    const lb = localBodies.find((item) => item.lb_code.toString() === params.lbCode);
+
+    if (!lb) {
+      throw notFound();
+    }
+
+    return data;
+  }
 });
 
 function DetailsRoute() {
   const { lbCode } = Route.useParams();
   const navigate = useNavigate({ from: Route.fullPath });
 
-  const { data: localBodies = [] } = useLocalBody();
-  const { data: wards = [] } = useWards();
-  const { data: pollingStations = [] } = usePollingStations();
-  const { data: trendResults = [] } = useTrendResults();
+  const [localBodies, wards, pollingStations, trendResults] = Route.useLoaderData()
 
   const selectedLocalBody = localBodies.find(
     (lb) => lb.lb_code.toString() === lbCode
