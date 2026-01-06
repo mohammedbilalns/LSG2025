@@ -1,4 +1,5 @@
-import { createRootRoute, Outlet, Link, useNavigate } from '@tanstack/react-router';
+import { createRootRouteWithContext, Outlet, Link, useNavigate } from '@tanstack/react-router';
+import { type QueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Search, LayoutGrid, Map as MapIcon } from 'lucide-react';
 import Logo from '../assets/logo.png';
@@ -7,7 +8,11 @@ import { useLocalBody } from '../services/data';
 import { type LocalBody } from '../services/dataService';
 // import { TanStackRouterDevtools } from '@tanstack/router-devtools';
 
-export const Route = createRootRoute({
+interface RouterContext {
+    queryClient: QueryClient
+}
+
+export const Route = createRootRouteWithContext<RouterContext>()({
     component: RootComponent,
 });
 
